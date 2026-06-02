@@ -7,7 +7,9 @@ import { ScatterplotLayer, GeoJsonLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { ChargeFeature, BoundaryFeature, Filters } from "@/types/charging";
+import type { ChoroplethData, MetricMeta } from "@/types/analysis";
 import { statusColor, freightColor, BOUNDARY_LINE, LEGEND, type RGBA } from "@/lib/colors";
+import { rampColor, rampCss, robustDomain, NODATA } from "@/lib/ramp";
 
 interface MapDeckProps {
   chargeFeatures: ChargeFeature[];
@@ -16,6 +18,17 @@ interface MapDeckProps {
   filters: Filters;
   selectedLocationId: string | null;
   onSelect: (feature: ChargeFeature | null) => void;
+  choropleth?: ChoroplethData | null;
+  analysisMetric?: string | null;
+  metricMeta?: MetricMeta | null;
+  onAreaSelect?: (props: Record<string, unknown>) => void;
+}
+
+interface AreaHover {
+  gemeente: string;
+  value: number | null;
+  lng: number;
+  lat: number;
 }
 
 const NL_BOUNDS: [[number, number], [number, number]] = [
@@ -36,10 +49,29 @@ export default function MapDeck({
   filters,
   selectedLocationId,
   onSelect,
+  choropleth,
+  analysisMetric,
+  metricMeta,
+  onAreaSelect,
 }: MapDeckProps) {
   const mapRef = useRef<MapRef>(null);
   const [deckOverlay, setDeckOverlay] = useState<MapboxOverlay | null>(null);
   const [hovered, setHovered] = useState<ChargeFeature | null>(null);
+  const [areaHover, setAreaHover] = useState<AreaHover | null>(null);
+
+  const choroActive = !!(choropleth && analysisMetric);
+  const metricDomain = useMemo<[number, number] | null>(() => {
+    if (!choroActive) return null;
+    const vals = choropleth!.features
+      .map((f) => f.properties[analysisMetric!])
+      .filter((v): v is number => typeof v === "number");
+    return robustDomain(vals);
+  }, [choropleth, analysisMetric, choroActive]);
+
+  const fmt = (v: number) => {
+    const d = metricMeta?.decimals ?? 1;
+    return v.toLocaleString("nl-NL", { minimumFractionDigits: d, maximumFractionDigits: d });
+  };
 
   useEffect(() => {
     const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
@@ -72,6 +104,46 @@ export default function MapDeck({
 
   const layers = useMemo(() => {
     const result: unknown[] = [];
+
+    // Choropleth (analysis) underneath everything else.
+    if (choroActive && metricDomain) {
+      const [lo, hi] = metricDomain;
+      result.push(
+        new GeoJsonLayer({
+          id: "choropleth",
+          data: choropleth as never,
+          stroked: true,
+          filled: true,
+          getFillColor: (f: { properties: Record<string, unknown> }) => {
+            const v = f.properties[analysisMetric!];
+            if (typeof v !== "number") return NODATA as RGBA;
+            return rampColor(hi > lo ? (v - lo) / (hi - lo) : 0.5);
+          },
+          getLineColor: [255, 255, 255, 180] as RGBA,
+          lineWidthMinPixels: 0.5,
+          pickable: true,
+          onClick: (info: PickingInfo) => {
+            const o = info.object as { properties?: Record<string, unknown> } | null;
+            if (o?.properties && onAreaSelect) onAreaSelect(o.properties);
+          },
+          onHover: (info: PickingInfo) => {
+            const o = info.object as { properties?: Record<string, unknown> } | null;
+            if (o?.properties && info.coordinate) {
+              const v = o.properties[analysisMetric!];
+              setAreaHover({
+                gemeente: String(o.properties.gemeente ?? ""),
+                value: typeof v === "number" ? v : null,
+                lng: info.coordinate[0],
+                lat: info.coordinate[1],
+              });
+            } else {
+              setAreaHover(null);
+            }
+          },
+          updateTriggers: { getFillColor: [analysisMetric, lo, hi] },
+        }),
+      );
+    }
 
     if (filters.showBoundary && boundaryFeatures.length) {
       result.push(
@@ -147,6 +219,11 @@ export default function MapDeck({
     selectedLocationId,
     handleHover,
     handleClick,
+    choroActive,
+    choropleth,
+    analysisMetric,
+    metricDomain,
+    onAreaSelect,
   ]);
 
   useEffect(() => {
@@ -174,7 +251,7 @@ export default function MapDeck({
 
   return (
     <div className="h-full w-full relative">
-      <style>{cursorStyle(!!hovered)}</style>
+      <style>{cursorStyle(!!hovered || !!areaHover)}</style>
       <Map
         ref={mapRef}
         initialViewState={{ longitude: 5.2913, latitude: 52.1326, zoom: 7 }}
@@ -230,10 +307,52 @@ export default function MapDeck({
             </div>
           </Popup>
         )}
+
+        {/* Choropleth area hover */}
+        {choroActive && areaHover && (
+          <Popup
+            longitude={areaHover.lng}
+            latitude={areaHover.lat}
+            closeButton={false}
+            closeOnClick={false}
+            anchor="bottom"
+            offset={8}
+          >
+            <div className="p-2">
+              <div className="font-semibold text-sm text-gray-900">{areaHover.gemeente}</div>
+              <div className="text-xs text-gray-600">
+                {metricMeta?.label}:{" "}
+                <span className="font-medium">
+                  {areaHover.value === null ? "geen data" : `${fmt(areaHover.value)}${metricMeta?.unit ? " " + metricMeta.unit : ""}`}
+                </span>
+              </div>
+            </div>
+          </Popup>
+        )}
       </Map>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md text-xs">
+      {/* Choropleth legend */}
+      {choroActive && metricDomain && (
+        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md text-xs">
+          <div className="font-semibold mb-1">{metricMeta?.label}</div>
+          <div
+            className="h-2 w-40 rounded"
+            style={{ background: `linear-gradient(to right, ${rampCss(0)}, ${rampCss(0.25)}, ${rampCss(0.5)}, ${rampCss(0.75)}, ${rampCss(1)})` }}
+          />
+          <div className="flex justify-between w-40 text-gray-500 mt-0.5">
+            <span>{fmt(metricDomain[0])}</span>
+            <span>{fmt(metricDomain[1])}{metricMeta?.unit ? ` ${metricMeta.unit}` : ""}</span>
+          </div>
+          <div className="flex items-center gap-1 mt-1 text-gray-400">
+            <span className="w-3 h-3 rounded-sm" style={{ background: "rgb(226,232,240)" }} />
+            geen data
+          </div>
+        </div>
+      )}
+
+      {/* Marker legend */}
+      {!choroActive && (
+      <div data-tour="legend" className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md text-xs">
         <div className="font-semibold mb-1">Personenauto (status)</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
@@ -265,6 +384,7 @@ export default function MapDeck({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

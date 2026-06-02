@@ -1,0 +1,50 @@
+name: Hourly charging snapshot
+
+on:
+  schedule:
+    # Every hour at minute 5 (UTC). Snapshots are bucketed by Europe/Amsterdam time.
+    - cron: '5 * * * *'
+  workflow_dispatch: # allow manual runs
+
+permissions:
+  contents: write
+
+concurrency:
+  group: charging-snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: data-pipeline/package-lock.json
+
+      - name: Install dependencies
+        working-directory: data-pipeline
+        run: npm ci
+
+      - name: Fetch snapshot (NDW OCPI -> occupancy + status)
+        working-directory: data-pipeline
+        run: npm run snapshot
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add webapp/public/data/snapshots webapp/public/data/status
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          TS=$(date -u +"%Y-%m-%d %H:%M UTC")
+          git commit -m "data: charging snapshot ${TS}"
+          git push

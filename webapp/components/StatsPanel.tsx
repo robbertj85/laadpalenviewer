@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { ChargeFeature } from "@/types/charging";
 import { LEGEND } from "@/lib/colors";
+import InfoTip from "@/components/InfoTip";
 
 interface StatsPanelProps {
   gemeente: string;
@@ -50,7 +51,14 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
           <div className="text-xl font-bold text-amber-700 tabular-nums">
             {stats.freight.toLocaleString("nl-NL")}
           </div>
-          <div className="text-xs text-amber-900">Logistiek / vracht</div>
+          <div className="text-xs text-amber-900 flex items-center gap-1">
+            Logistiek / vracht
+            <InfoTip title="Logistiek / vracht">
+              Laadpunten geclassificeerd als zware-voertuiglader: een truck-exploitant (Milence, WattHub…),
+              de MCS/megawatt-standaard, of een DC-connector ≥ 350 kW. Gewone snelladers (150–350 kW) blijven
+              personenauto.
+            </InfoTip>
+          </div>
         </div>
       </div>
 
@@ -62,7 +70,13 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
 
       {/* OCPI status breakdown */}
       <div>
-        <div className="text-xs font-medium text-gray-600 mb-1">Status (OCPI-momentopname)</div>
+        <div className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
+          Status (OCPI-momentopname)
+          <InfoTip title="OCPI-status">
+            Beschikbaar/bezet/niet-beschikbaar komt uit de OCPI-status in de laatste uurlijkse momentopname van
+            de NDW-data — een snapshot, geen continue realtime stream. “Bezet” = connector aan het laden.
+          </InfoTip>
+        </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
           <StatusChip color={LEGEND.available} label="Beschikbaar" value={stats.available} />
           <StatusChip color={LEGEND.charging} label="Bezet" value={stats.charging} />

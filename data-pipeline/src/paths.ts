@@ -16,4 +16,6 @@ export const PIPELINE_DATA_DIR = join(PIPELINE_ROOT, 'data');
 export const WEBAPP_PUBLIC = join(PROJECT_ROOT, 'webapp', 'public');
 export const DATA_DIR = join(WEBAPP_PUBLIC, 'data');
 export const GEMEENTEN_DIR = join(DATA_DIR, 'gemeenten');
+export const SNAPSHOTS_DIR = join(DATA_DIR, 'snapshots');
+export const STATUS_DIR = join(DATA_DIR, 'status');
 export const MUNICIPALITIES_JSON = join(WEBAPP_PUBLIC, 'municipalities.json');

@@ -57,6 +57,19 @@ async function loadGzJson<T>(url: string, cacheName: string, refresh: boolean): 
   return JSON.parse(json) as T;
 }
 
+function isUsable(loc: OCPILocation): boolean {
+  if (loc.publish === false) return false;
+  const lat = Number.parseFloat(loc.coordinates?.latitude ?? '');
+  const lng = Number.parseFloat(loc.coordinates?.longitude ?? '');
+  return Number.isFinite(lat) && Number.isFinite(lng);
+}
+
+// Locations only — used by the hourly snapshot job (no tariffs needed).
+export async function fetchNdwLocations(refresh = false): Promise<OCPILocation[]> {
+  const raw = await loadGzJson<OCPILocation[]>(NDW_LOCATIONS_URL, 'charging-locations.json.gz', refresh);
+  return raw.filter(isUsable);
+}
+
 export interface NdwData {
   locations: OCPILocation[];
   tariffMap: Map<string, OCPITariff>;
@@ -69,13 +82,7 @@ export async function fetchNdw(refresh = false): Promise<NdwData> {
     loadGzJson<OCPITariff[]>(NDW_TARIFFS_URL, 'charging-tariffs.json.gz', refresh),
   ]);
 
-  // Only published locations with usable coordinates.
-  const locations = rawLocations.filter((loc) => {
-    if (loc.publish === false) return false;
-    const lat = Number.parseFloat(loc.coordinates?.latitude ?? '');
-    const lng = Number.parseFloat(loc.coordinates?.longitude ?? '');
-    return Number.isFinite(lat) && Number.isFinite(lng);
-  });
+  const locations = rawLocations.filter(isUsable);
 
   const tariffMap = new Map<string, OCPITariff>();
   for (const t of tariffs) tariffMap.set(t.id, t);

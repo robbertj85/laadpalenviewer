@@ -3,22 +3,27 @@
 import { X, ExternalLink, Clock, Zap, MapPin, Building2, Truck } from "lucide-react";
 import type { ChargeFeature, EnrichedLocation } from "@/types/charging";
 import { formatConnectorStandard, formatPowerType, statusColorClass, statusLabel } from "@/lib/connectorLabels";
+import UsageChart from "@/components/UsageChart";
 
 interface Props {
   selected: ChargeFeature | null;
   detail: EnrichedLocation | null;
   loading: boolean;
+  slug?: string; // gemeente slug for usage history (undefined / 'nederland' = no chart)
   onClose: () => void;
   onJumpToGemeente?: () => void;
 }
 
-export default function LocationDetailPanel({ selected, detail, loading, onClose, onJumpToGemeente }: Props) {
+export default function LocationDetailPanel({ selected, detail, loading, slug, onClose, onJumpToGemeente }: Props) {
   if (!selected) return null;
   const p = selected.properties;
   const isFreight = p.layer === "freight";
 
   return (
-    <div className="absolute top-4 right-14 w-96 max-w-[calc(100vw-5rem)] max-h-[calc(100%-2rem)] bg-white rounded-lg shadow-lg overflow-hidden flex flex-col z-10">
+    <div
+      data-tour="detail"
+      className="absolute top-4 right-14 w-96 max-w-[calc(100vw-5rem)] max-h-[calc(100%-2rem)] bg-white rounded-lg shadow-lg overflow-hidden flex flex-col z-10"
+    >
       <div className="p-4 border-b bg-gray-50 flex-shrink-0">
         <div className="flex justify-between items-start">
           <div className="flex-1 min-w-0">
@@ -75,6 +80,9 @@ export default function LocationDetailPanel({ selected, detail, loading, onClose
             <div className="text-xs text-gray-500 mt-1">Bron: {p.source.toUpperCase()}</div>
           </div>
         </div>
+
+        {/* Usage over time (gemeente view only; per-gemeente snapshot history) */}
+        {slug && slug !== "nederland" && <UsageChart slug={slug} locationId={p.locationId} />}
 
         {loading && (
           <div className="text-sm text-gray-500 italic flex items-center gap-2">

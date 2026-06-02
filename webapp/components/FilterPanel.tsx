@@ -2,6 +2,7 @@
 
 import type { Filters } from "@/types/charging";
 import { LEGEND } from "@/lib/colors";
+import InfoTip from "@/components/InfoTip";
 
 interface FilterPanelProps {
   filters: Filters;
@@ -16,8 +17,14 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-900">Kaartlagen</h3>
+    <div className="bg-white rounded-lg shadow-sm p-4 space-y-4" data-tour="layers">
+      <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1">
+        Kaartlagen
+        <InfoTip title="Kaartlagen">
+          Zet de twee laadpunt-lagen (personenauto / vracht) en de gemeente-/provinciegrenzen aan of uit, en
+          filter op minimaal laadvermogen. De tellingen rechts tonen het aantal in de huidige weergave.
+        </InfoTip>
+      </h3>
 
       {/* Layer toggles */}
       <div className="space-y-2">
@@ -64,7 +71,13 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
       {/* Power filter */}
       <div className="pt-2 border-t border-gray-100">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-700">Min. vermogen</span>
+          <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
+            Min. vermogen
+            <InfoTip title="Minimaal vermogen">
+              Toon alleen laadpunten met een gerapporteerd maximaal connectorvermogen ≥ de gekozen kW. Let op:
+              NDW publiceert voor veel AC-laders géén vermogen (telt als 0), dus een hoge drempel verbergt die.
+            </InfoTip>
+          </span>
           <span className="text-xs text-gray-500">
             {filters.minPowerKw === 0 ? "alle" : `≥ ${filters.minPowerKw} kW`}
           </span>
