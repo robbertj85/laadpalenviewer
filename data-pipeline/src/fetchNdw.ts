@@ -3,7 +3,7 @@
 
 import { gunzipSync } from 'node:zlib';
 import { createWriteStream } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { mkdir, readFile, stat } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { Readable } from 'node:stream';
 import { join } from 'node:path';
@@ -26,6 +26,7 @@ async function fileFreshEnough(path: string): Promise<boolean> {
 }
 
 async function download(url: string, outputPath: string): Promise<void> {
+  await mkdir(CACHE_DIR, { recursive: true });
   const response = await fetch(url);
   if (!response.ok || !response.body) {
     throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`);
