@@ -50,14 +50,6 @@ export default function Home() {
   const [showShare, setShowShare] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-
-  // Auto-open the tutorial on first visit.
-  useEffect(() => {
-    if (!localStorage.getItem("tutorialSeen")) {
-      setShowTutorial(true);
-      localStorage.setItem("tutorialSeen", "1");
-    }
-  }, []);
   const [choropleth, setChoropleth] = useState<ChoroplethData | null>(null);
   const [analysisMetric, setAnalysisMetric] = useState<string | null>(null);
   const [selectedArea, setSelectedArea] = useState<AreaProps | null>(null);
