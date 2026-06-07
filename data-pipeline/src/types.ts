@@ -59,6 +59,33 @@ export interface OCPILocation {
   last_updated: string;
 }
 
+export interface OCPIPriceComponent {
+  type: string; // ENERGY | TIME | FLAT | PARKING_TIME | ...
+  price: number;
+  vat?: number;
+  step_size?: number;
+}
+
+export interface OCPITariffRestrictions {
+  start_time?: string | null; // HH:MM (local)
+  end_time?: string | null;
+  start_date?: string | null; // YYYY-MM-DD
+  end_date?: string | null;
+  min_kwh?: number | null;
+  max_kwh?: number | null;
+  min_power?: number | null; // kW
+  max_power?: number | null;
+  min_duration?: number | null;
+  max_duration?: number | null;
+  day_of_week?: string[] | null;
+  reservation?: string | null;
+}
+
+export interface OCPITariffElement {
+  price_components?: OCPIPriceComponent[];
+  restrictions?: OCPITariffRestrictions;
+}
+
 export interface OCPITariff {
   id: string;
   country_code: string;
@@ -67,7 +94,7 @@ export interface OCPITariff {
   type?: string;
   min_price?: number;
   max_price?: number;
-  elements: unknown[];
+  elements: OCPITariffElement[];
   start_date_time?: string;
   end_date_time?: string;
   last_updated: string;
@@ -104,6 +131,7 @@ export interface LightLocation {
   status: AggregateStatus;
   source: string; // 'ndw' | 'curated' | 'eafo' | 'ocm'
   sourceUrl?: string;
+  priceKwh?: number; // cheapest currently-applicable €/kWh across this location's connectors
 }
 
 // Normalized external freight location (from sources/*).
@@ -120,11 +148,14 @@ export interface NormalizedFreightLocation {
   isMegawatt?: boolean;
   status?: AggregateStatus;
   sourceUrl?: string;
+  priceKwh?: number;
 }
 
 // Full enriched location detail ("with details"), stored in per-gemeente bundles.
 export interface EnrichedConnector extends OCPIConnector {
   tariffs: OCPITariff[];
+  priceKwh?: number; // resolved current €/kWh ENERGY price
+  priceVat?: number; // VAT %, informational
 }
 export interface EnrichedEVSE extends Omit<OCPIEVSE, 'connectors'> {
   connectors: EnrichedConnector[];

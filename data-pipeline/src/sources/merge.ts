@@ -47,6 +47,7 @@ export function mergeFreight(
         city: winner.city || other.city,
         status: pickStatus,
         sourceUrl: winner.sourceUrl || other.sourceUrl,
+        priceKwh: winner.priceKwh ?? other.priceKwh,
       });
     }
   }

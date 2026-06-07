@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 import json
+import statistics
 import pandas as pd
 from ..paths import MUNICIPALITIES_JSON, GEMEENTEN_DIR, SNAPSHOTS_DIR
 
@@ -38,21 +39,32 @@ def _snapshot_metrics(slug: str) -> dict:
     return {"avg_occupancy": avg, "evse_total": evse_total, "charging_now": charging_now, "occupancy_now": occ_now}
 
 
-def _crop_power(slug: str) -> tuple[float, int]:
-    """Sum of max power (kW) and megawatt-location count for a gemeente."""
+def _crop_stats(slug: str) -> dict:
+    """Per-gemeente supply stats from the crop-out: summed power, megawatt count,
+    and the €/kWh price distribution (median/mean) over locations that publish one."""
     f = GEMEENTEN_DIR / f"{slug}.geojson"
     if not f.exists():
-        return 0.0, 0
+        return {"power": 0.0, "mw": 0, "price_median": None, "price_mean": None, "price_n": 0}
     data = json.loads(f.read_text())
     power = 0.0
     mw = 0
+    prices: list[float] = []
     for feat in data.get("features", []):
         p = feat.get("properties", {})
         if p.get("type") == "charge":
             power += p.get("maxPowerKw") or 0
             if p.get("isMegawatt"):
                 mw += 1
-    return power, mw
+            price = p.get("priceKwh")
+            if isinstance(price, (int, float)):
+                prices.append(float(price))
+    return {
+        "power": power,
+        "mw": mw,
+        "price_median": round(statistics.median(prices), 3) if prices else None,
+        "price_mean": round(statistics.fmean(prices), 3) if prices else None,
+        "price_n": len(prices),
+    }
 
 
 def fetch_chargers() -> pd.DataFrame:
@@ -62,7 +74,7 @@ def fetch_chargers() -> pd.DataFrame:
         if not m.get("code"):  # skip 'nederland'
             continue
         slug = m["slug"]
-        power, mw = _crop_power(slug)
+        crop = _crop_stats(slug)
         snap = _snapshot_metrics(slug)
         rows.append({
             "code": m["code"],
@@ -71,8 +83,11 @@ def fetch_chargers() -> pd.DataFrame:
             "population": m.get("population") or 0,
             "chargers_passenger": m.get("passengerCount") or 0,
             "chargers_freight": m.get("freightCount") or 0,
-            "total_power_kw": round(power),
-            "megawatt_sites": mw,
+            "total_power_kw": round(crop["power"]),
+            "megawatt_sites": crop["mw"],
+            "price_kwh_median": crop["price_median"],
+            "price_kwh_mean": crop["price_mean"],
+            "price_kwh_n": crop["price_n"],
             "avg_occupancy": snap["avg_occupancy"],
             "evse_total": snap["evse_total"],
             "charging_now": snap["charging_now"],

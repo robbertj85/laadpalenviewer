@@ -8,6 +8,7 @@ import { curatedSource } from './sources/curated.js';
 import { eafoSource } from './sources/eafo.js';
 import { openChargeMapSource } from './sources/openChargeMap.js';
 import { mergeFreight } from './sources/merge.js';
+import { resolveConnectorPrice } from './tariff.js';
 import type { FreightSource } from './sources/types.js';
 import type {
   OCPILocation,
@@ -20,7 +21,13 @@ import type {
 
 const EXTERNAL_SOURCES: FreightSource[] = [curatedSource, eafoSource, openChargeMapSource];
 
-function enrich(loc: OCPILocation, meta: ClassificationMeta, tariffMap: Map<string, OCPITariff>, locationId: string): EnrichedLocation {
+function enrich(
+  loc: OCPILocation,
+  meta: ClassificationMeta,
+  tariffMap: Map<string, OCPITariff>,
+  locationId: string,
+  now: Date,
+): EnrichedLocation {
   return {
     locationId,
     ocpiId: loc.id,
@@ -41,19 +48,38 @@ function enrich(loc: OCPILocation, meta: ClassificationMeta, tariffMap: Map<stri
     maxPowerKw: meta.maxPowerKw,
     evses: (loc.evses ?? []).map((evse) => ({
       ...evse,
-      connectors: (evse.connectors ?? []).map((c) => ({
-        ...c,
-        tariffs: (c.tariff_ids ?? [])
+      connectors: (evse.connectors ?? []).map((c) => {
+        const tariffs = (c.tariff_ids ?? [])
           .map((id) => tariffMap.get(id))
-          .filter((t): t is OCPITariff => Boolean(t)),
-      })),
+          .filter((t): t is OCPITariff => Boolean(t));
+        const powerKw = c.max_electric_power ? c.max_electric_power / 1000 : 0;
+        const resolved = resolveConnectorPrice(tariffs, powerKw, now);
+        return {
+          ...c,
+          tariffs,
+          ...(resolved ? { priceKwh: resolved.price, priceVat: resolved.vat } : {}),
+        };
+      }),
     })),
   };
 }
 
+// Cheapest resolved €/kWh across a location's connectors (the headline shown on
+// the map / used by the analysis layer). undefined when no connector has a price.
+function locationPriceKwh(loc: EnrichedLocation): number | undefined {
+  let min: number | undefined;
+  for (const e of loc.evses) {
+    for (const c of e.connectors) {
+      if (typeof c.priceKwh === 'number' && (min === undefined || c.priceKwh < min)) min = c.priceKwh;
+    }
+  }
+  return min;
+}
+
 async function main() {
   const refresh = process.argv.includes('--refresh');
-  const generatedAt = new Date().toISOString();
+  const now = new Date();
+  const generatedAt = now.toISOString();
   console.log(`\n=== Laadpalenviewer data pipeline (${generatedAt}) ===\n`);
 
   // 1. NDW OCPI.
@@ -71,7 +97,9 @@ async function main() {
     const lat = Number.parseFloat(loc.coordinates.latitude);
     const lng = Number.parseFloat(loc.coordinates.longitude);
     const locationId = sanitizeId(loc.id);
-    enrichedById.set(locationId, enrich(loc, meta, tariffMap, locationId));
+    const enriched = enrich(loc, meta, tariffMap, locationId, now);
+    enrichedById.set(locationId, enriched);
+    const priceKwh = locationPriceKwh(enriched);
 
     if (meta.category === 'passenger') {
       passengerLights.push({
@@ -88,6 +116,7 @@ async function main() {
         isMegawatt: meta.isMegawatt,
         status,
         source: 'ndw',
+        priceKwh,
       });
     } else {
       freightFromNdw++;
@@ -103,6 +132,7 @@ async function main() {
         maxPowerKw: meta.maxPowerKw,
         isMegawatt: meta.isMegawatt,
         status,
+        priceKwh,
       });
     }
   }
@@ -138,6 +168,7 @@ async function main() {
     status: f.status ?? 'UNKNOWN',
     source: f.source,
     sourceUrl: f.sourceUrl,
+    priceKwh: f.priceKwh,
   }));
 
   // 5. Boundaries.

@@ -49,6 +49,14 @@
       "desc": "Gemiddeld aandeel connectoren dat 'laadt' over de geregistreerde snapshot-uren."
     },
     {
+      "key": "price_kwh_median",
+      "label": "Mediaan tarief (€/kWh)",
+      "unit": "€/kWh",
+      "decimals": 3,
+      "category": "Prijs",
+      "desc": "Mediaan van het actuele energietarief (€/kWh) uit de OCPI-tarieven (NDW) over laadlocaties met een gepubliceerde prijs. ±50% van de connectoren publiceert geen tarief; momentopname uit de laatste data-update."
+    },
+    {
       "key": "demand_per_1000_inw",
       "label": "Verwachte vraag (peer-model)",
       "unit": "/1.000 inw",
@@ -114,16 +122,16 @@
     }
   ],
   "model": {
-    "r2_oof": 0.432,
-    "mae_oof": 102.8,
+    "r2_oof": 0.436,
+    "mae_oof": 103.6,
     "feature_importance": {
-      "inwoners": 0.478,
-      "huishoudens": 0.328,
-      "autos_totaal": 0.096,
-      "autos_per_huishouden": 0.002,
+      "inwoners": 0.486,
+      "huishoudens": 0.323,
+      "autos_totaal": 0.095,
+      "autos_per_huishouden": 0.003,
       "inkomen_per_inwoner": 0.027,
       "stedelijkheid": 0.001,
-      "adresdichtheid": 0.068
+      "adresdichtheid": 0.065
     }
   }
 }

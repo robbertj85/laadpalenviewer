@@ -39,6 +39,7 @@ function pointFeature(l: LightLocation) {
       isMegawatt: l.isMegawatt,
       status: l.status,
       source: l.source,
+      ...(l.priceKwh != null ? { priceKwh: l.priceKwh } : {}),
     },
   };
 }

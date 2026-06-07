@@ -68,6 +68,28 @@ export default function MapDeck({
     return robustDomain(vals);
   }, [choropleth, analysisMetric, choroActive]);
 
+  // Price coloring (mutually exclusive with the choropleth).
+  const priceActive = filters.colorByPrice && !choroActive;
+  const priceDomain = useMemo<[number, number] | null>(() => {
+    if (!priceActive) return null;
+    const vals = chargeFeatures
+      .map((f) => f.properties.priceKwh)
+      .filter((v): v is number => typeof v === "number");
+    return vals.length ? robustDomain(vals) : null;
+  }, [priceActive, chargeFeatures]);
+
+  const priceColor = useCallback(
+    (price: number | undefined): RGBA => {
+      if (typeof price !== "number" || !priceDomain) return NODATA as RGBA;
+      const [lo, hi] = priceDomain;
+      return rampColor(hi > lo ? (price - lo) / (hi - lo) : 0.5);
+    },
+    [priceDomain],
+  );
+
+  const fmtPrice = (v: number) =>
+    v.toLocaleString("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 3 });
+
   const fmt = (v: number) => {
     const d = metricMeta?.decimals ?? 1;
     return v.toLocaleString("nl-NL", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -183,8 +205,8 @@ export default function MapDeck({
           radiusMinPixels: 3,
           radiusMaxPixels: 10,
           getRadius: (d) => (d.properties.locationId === selectedLocationId ? 11 : 5),
-          getFillColor: (d) => statusColor(d.properties.status),
-          updateTriggers: { getRadius: [selectedLocationId], getFillColor: [] },
+          getFillColor: (d) => (priceActive ? priceColor(d.properties.priceKwh) : statusColor(d.properties.status)),
+          updateTriggers: { getRadius: [selectedLocationId], getFillColor: [priceActive, priceDomain] },
         }),
       );
     }
@@ -199,11 +221,11 @@ export default function MapDeck({
           radiusMaxPixels: 16,
           getRadius: (d) =>
             d.properties.locationId === selectedLocationId ? 16 : d.properties.isMegawatt ? 11 : 8,
-          getFillColor: (d) => freightColor(d.properties.isMegawatt),
+          getFillColor: (d) => (priceActive ? priceColor(d.properties.priceKwh) : freightColor(d.properties.isMegawatt)),
           getLineColor: (d) =>
             d.properties.isMegawatt ? ([124, 45, 18, 255] as RGBA) : ([255, 255, 255, 230] as RGBA),
           getLineWidth: (d) => (d.properties.isMegawatt ? 2 : 1),
-          updateTriggers: { getRadius: [selectedLocationId] },
+          updateTriggers: { getRadius: [selectedLocationId], getFillColor: [priceActive, priceDomain] },
         }),
       );
     }
@@ -223,6 +245,9 @@ export default function MapDeck({
     choropleth,
     analysisMetric,
     metricDomain,
+    priceActive,
+    priceColor,
+    priceDomain,
     onAreaSelect,
   ]);
 
@@ -303,6 +328,11 @@ export default function MapDeck({
                 </span>
                 {hovered.properties.maxPowerKw > 0 && <span>{hovered.properties.maxPowerKw} kW</span>}
               </div>
+              {typeof hovered.properties.priceKwh === "number" && (
+                <div className="text-xs mt-1 text-gray-700">
+                  Tarief: <span className="font-medium">{fmtPrice(hovered.properties.priceKwh)}</span> / kWh
+                </div>
+              )}
               <div className="text-xs text-blue-600 mt-1">Klik voor details</div>
             </div>
           </Popup>
@@ -350,8 +380,27 @@ export default function MapDeck({
         </div>
       )}
 
+      {/* Price legend */}
+      {priceActive && priceDomain && (
+        <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md text-xs">
+          <div className="font-semibold mb-1">Tarief (€/kWh)</div>
+          <div
+            className="h-2 w-40 rounded"
+            style={{ background: `linear-gradient(to right, ${rampCss(0)}, ${rampCss(0.25)}, ${rampCss(0.5)}, ${rampCss(0.75)}, ${rampCss(1)})` }}
+          />
+          <div className="flex justify-between w-40 text-gray-500 mt-0.5">
+            <span>{fmtPrice(priceDomain[0])}</span>
+            <span>{fmtPrice(priceDomain[1])}</span>
+          </div>
+          <div className="flex items-center gap-1 mt-1 text-gray-400">
+            <span className="w-3 h-3 rounded-sm" style={{ background: "rgb(226,232,240)" }} />
+            geen tarief
+          </div>
+        </div>
+      )}
+
       {/* Marker legend */}
-      {!choroActive && (
+      {!choroActive && !priceActive && (
       <div data-tour="legend" className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-md text-xs">
         <div className="font-semibold mb-1">Personenauto (status)</div>
         <div className="space-y-1">

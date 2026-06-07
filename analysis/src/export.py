@@ -20,6 +20,8 @@ METRICS = [
      "desc": "Som van gerapporteerd connectorvermogen per 1.000 inwoners. Let op: NDW mist vermogen voor ±90% — onderschatting."},
     {"key": "avg_occupancy", "label": "Gem. bezetting (snapshot)", "unit": "%", "decimals": 1, "category": "Gebruik",
      "desc": "Gemiddeld aandeel connectoren dat 'laadt' over de geregistreerde snapshot-uren."},
+    {"key": "price_kwh_median", "label": "Mediaan tarief (€/kWh)", "unit": "€/kWh", "decimals": 3, "category": "Prijs",
+     "desc": "Mediaan van het actuele energietarief (€/kWh) uit de OCPI-tarieven (NDW) over laadlocaties met een gepubliceerde prijs. ±50% van de connectoren publiceert geen tarief; momentopname uit de laatste data-update."},
     {"key": "demand_per_1000_inw", "label": "Verwachte vraag (peer-model)", "unit": "/1.000 inw", "decimals": 1, "category": "Vraag",
      "desc": "Door een random-forest voorspeld 'verwacht' aantal laadpunten o.b.v. demografie, per 1.000 inwoners."},
     {"key": "supply_gap", "label": "Tekort/overschot t.o.v. verwacht", "unit": "laadpunten", "decimals": 0, "category": "Vraag",
@@ -44,6 +46,7 @@ SCORECARD_COLS = [
     "est_peak_load_kw", "potential_peak_load_kw", "live_peak_load_kw",
     "evse_total", "charging_now", "occupancy_now",
     "megawatt_sites", "supply_pct", "occupancy_pct", "gap_pct",
+    "price_kwh_mean", "price_kwh_n", "price_pct",
 ]
 EXPORT_COLS = [m["key"] for m in METRICS] + SCORECARD_COLS
 

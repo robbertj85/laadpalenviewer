@@ -98,6 +98,26 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
           ))}
         </div>
       </div>
+
+      {/* Price coloring */}
+      <div className="pt-2 border-t border-gray-100">
+        <label className="flex items-center justify-between gap-2 cursor-pointer">
+          <span className="flex items-center gap-2 text-sm text-gray-800">
+            <input
+              type="checkbox"
+              checked={filters.colorByPrice}
+              onChange={(e) => set({ colorByPrice: e.target.checked })}
+              className="w-4 h-4 accent-rose-600"
+            />
+            Kleur op prijs (€/kWh)
+          </span>
+          <InfoTip title="Kleur op prijs">
+            Kleurt de laadpunten naar het actuele energietarief (€/kWh) uit de OCPI-tarieven van NDW — lichter
+            is goedkoper, donkerder duurder. Punten zonder gepubliceerd tarief blijven grijs (NDW heeft voor
+            ±50% geen prijs). De prijs is een momentopname uit de laatste data-update.
+          </InfoTip>
+        </label>
+      </div>
     </div>
   );
 }

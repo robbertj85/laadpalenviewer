@@ -78,6 +78,33 @@ export default function GemeenteScorecard({ area, onClose, onOpenGemeente }: Pro
           <Row label="Gem. bezetting" value={num(area.avg_occupancy) === null ? "–" : `${fmt(num(area.avg_occupancy), 1)}%`} pct={num(area.occupancy_pct)} color="#3b82f6" />
         </section>
 
+        {/* Prijs */}
+        {num(area.price_kwh_median) !== null && (
+          <section className="space-y-2 pt-2 border-t border-gray-100">
+            <h4 className="text-sm font-medium text-gray-700 flex items-center gap-1">
+              Tarief (€/kWh)
+              <InfoTip title="Tarief (€/kWh)">
+                Mediaan van het actuele energietarief uit de OCPI-tarieven (NDW), over laadlocaties met een
+                gepubliceerde prijs. De balk toont de relatieve percentielrang (hoger = duurder dan andere
+                gemeenten). ±50% van de connectoren publiceert géén tarief; dit is een momentopname uit de
+                laatste data-update.
+              </InfoTip>
+            </h4>
+            <Row
+              label="Mediaan tarief"
+              value={`€ ${fmt(num(area.price_kwh_median), 3)}`}
+              pct={num(area.price_pct)}
+              color="#f43f5e"
+            />
+            {num(area.price_kwh_mean) !== null && (
+              <Row label="Gemiddeld tarief" value={`€ ${fmt(num(area.price_kwh_mean), 3)}`} />
+            )}
+            <p className="text-[10px] text-gray-400">
+              Op basis van {fmt(num(area.price_kwh_n))} laadlocaties met gepubliceerd tarief.
+            </p>
+          </section>
+        )}
+
         {/* Live load now */}
         {livePeak !== null && (
           <section className="space-y-1 pt-2 border-t border-gray-100">

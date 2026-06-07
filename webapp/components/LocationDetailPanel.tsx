@@ -1,9 +1,25 @@
 "use client";
 
 import { X, ExternalLink, Clock, Zap, MapPin, Building2, Truck } from "lucide-react";
-import type { ChargeFeature, EnrichedLocation } from "@/types/charging";
+import type { ChargeFeature, EnrichedConnector, EnrichedLocation } from "@/types/charging";
 import { formatConnectorStandard, formatPowerType, statusColorClass, statusLabel } from "@/lib/connectorLabels";
 import UsageChart from "@/components/UsageChart";
+
+const fmtPrice = (v: number) =>
+  v.toLocaleString("nl-NL", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 3 });
+
+// Prefer the price baked by the pipeline; fall back to a best-effort parse of the
+// raw tariff (for data generated before the price field existed).
+function connectorPriceKwh(c: EnrichedConnector): number | null {
+  if (typeof c.priceKwh === "number") return c.priceKwh;
+  for (const t of c.tariffs ?? []) {
+    for (const el of t.elements ?? []) {
+      const energy = el.price_components?.find((pc) => pc.type === "ENERGY");
+      if (energy && typeof energy.price === "number") return energy.price;
+    }
+  }
+  return null;
+}
 
 interface Props {
   selected: ChargeFeature | null;
@@ -148,12 +164,16 @@ export default function LocationDetailPanel({ selected, detail, loading, slug, o
                                   <span className="font-medium">{(c.max_electric_power / 1000).toFixed(1)} kW</span>
                                 ) : null}
                               </div>
-                              {c.tariffs.length > 0 && c.tariffs[0].elements?.[0]?.price_components?.[0] && (
-                                <div className="text-gray-500">
-                                  Tarief: {c.tariffs[0].elements[0].price_components[0].price}{" "}
-                                  {c.tariffs[0].currency} / {c.tariffs[0].elements[0].price_components[0].type.toLowerCase()}
-                                </div>
-                              )}
+                              {(() => {
+                                const price = connectorPriceKwh(c);
+                                if (price === null) return null;
+                                return (
+                                  <div className="text-gray-500">
+                                    Tarief: <span className="font-medium text-gray-700">{fmtPrice(price)}</span> / kWh
+                                    {typeof c.priceVat === "number" ? ` (excl. ${c.priceVat}% btw)` : ""}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           ))}
                         </div>

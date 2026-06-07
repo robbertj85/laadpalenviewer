@@ -77,6 +77,8 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
     df["supply_pct"] = _pct_rank(df["chargers_per_1000_inw"])
     df["occupancy_pct"] = _pct_rank(df["avg_occupancy"]) if df["avg_occupancy"].notna().any() else np.nan
     df["gap_pct"] = _pct_rank(-df["supply_gap"])  # high = more underserved
+    # Price percentile: high = relatively expensive vs other gemeenten.
+    df["price_pct"] = _pct_rank(df["price_kwh_median"]) if df["price_kwh_median"].notna().any() else np.nan
 
     df.attrs["model_metrics"] = metrics
     print(f"  [models] demand OOF R²={metrics['r2_oof']} MAE={metrics['mae_oof']}; "

@@ -25,6 +25,7 @@ export interface ChargeProperties {
   isMegawatt: boolean;
   status: AggregateStatus;
   source: string; // 'ndw' | 'curated' | 'eafo' | 'ocm'
+  priceKwh?: number; // cheapest currently-applicable €/kWh at this location
 }
 
 export interface BoundaryProperties {
@@ -77,6 +78,8 @@ export interface EnrichedConnector {
   max_electric_power?: number;
   tariff_ids?: string[];
   tariffs: EnrichedTariff[];
+  priceKwh?: number; // resolved current €/kWh ENERGY price
+  priceVat?: number; // VAT %, informational
   last_updated: string;
 }
 
@@ -126,6 +129,7 @@ export interface Filters {
   showFreight: boolean;
   showBoundary: boolean;
   minPowerKw: number;
+  colorByPrice: boolean; // color charge points by €/kWh instead of status
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -133,4 +137,5 @@ export const DEFAULT_FILTERS: Filters = {
   showFreight: true,
   showBoundary: true,
   minPowerKw: 0,
+  colorByPrice: false,
 };
