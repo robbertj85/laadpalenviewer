@@ -2,6 +2,9 @@
 
 export type ChargeLayer = "passenger" | "freight";
 export type AggregateStatus = "AVAILABLE" | "CHARGING" | "UNAVAILABLE" | "UNKNOWN";
+// 'dedicated' = explicit truck facility (operator/naam/MCS/depot/curated);
+// 'hpc' = qualifies only on >=350 kW DC (truck-capable, not per se truck-toegankelijk).
+export type FreightKind = "dedicated" | "hpc";
 
 export interface Municipality {
   name: string;
@@ -26,6 +29,8 @@ export interface ChargeProperties {
   status: AggregateStatus;
   source: string; // 'ndw' | 'curated' | 'eafo' | 'ocm'
   priceKwh?: number; // cheapest currently-applicable €/kWh at this location
+  freightKind?: FreightKind;
+  freightReason?: string;
 }
 
 export interface BoundaryProperties {
@@ -119,6 +124,8 @@ export interface EnrichedLocation {
   lastUpdated: string;
   layer: ChargeLayer;
   maxPowerKw: number;
+  freightKind?: FreightKind;
+  freightReason?: string;
   evses: EnrichedEVSE[];
 }
 
@@ -130,6 +137,7 @@ export interface Filters {
   showBoundary: boolean;
   minPowerKw: number;
   colorByPrice: boolean; // color charge points by €/kWh instead of status
+  dedicatedFreightOnly: boolean; // hide 'hpc' freight (power-only truck-capable sites)
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -138,4 +146,5 @@ export const DEFAULT_FILTERS: Filters = {
   showBoundary: true,
   minPowerKw: 0,
   colorByPrice: false,
+  dedicatedFreightOnly: false,
 };

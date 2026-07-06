@@ -102,6 +102,11 @@ export interface OCPITariff {
 
 export type ChargeCategory = 'passenger' | 'freight';
 
+// 'dedicated' = explicit truck facility (operator/name/MCS/curated);
+// 'hpc' = only qualifies on raw DC power >= 350 kW (truck-capable, not necessarily truck-accessible).
+export type FreightKind = 'dedicated' | 'hpc';
+export type FreightReason = 'operator' | 'truck-name' | 'mcs' | 'depot-name' | 'motorway' | 'power' | 'curated';
+
 // Classification metadata derived from a location's connectors.
 export interface ClassificationMeta {
   category: ChargeCategory;
@@ -110,6 +115,8 @@ export interface ClassificationMeta {
   hasMCS: boolean;
   isMegawatt: boolean;
   dcCount: number;
+  freightKind?: FreightKind;
+  freightReason?: FreightReason;
 }
 
 // Aggregate availability derived from a location's EVSE statuses (fleetsim-style).
@@ -132,6 +139,8 @@ export interface LightLocation {
   source: string; // 'ndw' | 'curated' | 'eafo' | 'ocm'
   sourceUrl?: string;
   priceKwh?: number; // cheapest currently-applicable €/kWh across this location's connectors
+  freightKind?: FreightKind;
+  freightReason?: FreightReason;
 }
 
 // Normalized external freight location (from sources/*).
@@ -149,6 +158,8 @@ export interface NormalizedFreightLocation {
   status?: AggregateStatus;
   sourceUrl?: string;
   priceKwh?: number;
+  freightKind?: FreightKind;
+  freightReason?: FreightReason;
 }
 
 // Full enriched location detail ("with details"), stored in per-gemeente bundles.
@@ -178,5 +189,7 @@ export interface EnrichedLocation {
   lastUpdated: string;
   layer: ChargeCategory;
   maxPowerKw: number;
+  freightKind?: FreightKind;
+  freightReason?: FreightReason;
   evses: EnrichedEVSE[];
 }

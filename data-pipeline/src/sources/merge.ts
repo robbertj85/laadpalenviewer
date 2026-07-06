@@ -38,6 +38,7 @@ export function mergeFreight(
       const other = winner === loc ? existing : loc;
       const pickStatus =
         winner.status && winner.status !== 'UNKNOWN' ? winner.status : other.status ?? winner.status;
+      const dedicated = winner.freightKind === 'dedicated' || other.freightKind === 'dedicated';
       byCoord.set(k, {
         ...winner,
         maxPowerKw: Math.max(winner.maxPowerKw, other.maxPowerKw),
@@ -48,6 +49,12 @@ export function mergeFreight(
         status: pickStatus,
         sourceUrl: winner.sourceUrl || other.sourceUrl,
         priceKwh: winner.priceKwh ?? other.priceKwh,
+        freightKind: dedicated ? 'dedicated' : winner.freightKind ?? other.freightKind,
+        freightReason:
+          (winner.freightKind === 'dedicated' ? winner.freightReason : undefined) ??
+          (other.freightKind === 'dedicated' ? other.freightReason : undefined) ??
+          winner.freightReason ??
+          other.freightReason,
       });
     }
   }

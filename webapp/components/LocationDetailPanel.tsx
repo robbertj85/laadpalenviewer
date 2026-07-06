@@ -10,6 +10,29 @@ const fmtPrice = (v: number) =>
 
 // Prefer the price baked by the pipeline; fall back to a best-effort parse of the
 // raw tariff (for data generated before the price field existed).
+// Best-effort connector kW mirroring the pipeline: plausible declared power,
+// else derived from V×A (×3 for three-phase AC). Filters out garbage values
+// like 7,360,000 W on a 230 V/32 A AC post.
+function connectorKw(c: EnrichedConnector): number | null {
+  const declared = c.max_electric_power ?? 0;
+  if (declared > 0 && declared <= 1_500_000) return declared / 1000;
+  const v = c.max_voltage ?? 0;
+  const a = c.max_amperage ?? 0;
+  if (v <= 0 || a <= 0) return null;
+  const phases = (c.power_type ?? "").toUpperCase() === "AC_3_PHASE" ? 3 : 1;
+  return (v * a * phases) / 1000;
+}
+
+const FREIGHT_REASON_LABEL: Record<string, string> = {
+  operator: "truck-exploitant",
+  "truck-name": "“truck” in de naam",
+  mcs: "MCS-aansluiting",
+  "depot-name": "logistiek depot",
+  motorway: "snelweglocatie ≥350 kW",
+  power: "alleen op vermogen (≥350 kW DC)",
+  curated: "handmatig toegevoegde hub",
+};
+
 function connectorPriceKwh(c: EnrichedConnector): number | null {
   if (typeof c.priceKwh === "number") return c.priceKwh;
   for (const t of c.tariffs ?? []) {
@@ -50,12 +73,17 @@ export default function LocationDetailPanel({ selected, detail, loading, slug, o
                 }`}
               >
                 {isFreight ? <Truck className="h-3 w-3" /> : <Zap className="h-3 w-3" />}
-                {isFreight ? "Vracht" : "Personenauto"}
+                {isFreight ? (p.freightKind === "hpc" ? "Truck-capable" : "Truck") : "Personenauto"}
               </span>
               {p.isMegawatt && (
                 <span className="px-1.5 py-0.5 rounded text-xs text-white bg-orange-600">Megawatt</span>
               )}
             </div>
+            {isFreight && p.freightReason && FREIGHT_REASON_LABEL[p.freightReason] && (
+              <div className="text-xs text-amber-700 mt-1">
+                Classificatie: {FREIGHT_REASON_LABEL[p.freightReason]}
+              </div>
+            )}
             <h3 className="font-semibold text-lg truncate mt-1">{p.name}</h3>
             {p.address && (
               <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
@@ -160,9 +188,10 @@ export default function LocationDetailPanel({ selected, detail, loading, slug, o
                               </div>
                               <div className="flex justify-between text-gray-600">
                                 <span>{formatPowerType(c.power_type)}</span>
-                                {c.max_electric_power ? (
-                                  <span className="font-medium">{(c.max_electric_power / 1000).toFixed(1)} kW</span>
-                                ) : null}
+                                {(() => {
+                                  const kw = connectorKw(c);
+                                  return kw ? <span className="font-medium">{kw.toFixed(1)} kW</span> : null;
+                                })()}
                               </div>
                               {(() => {
                                 const price = connectorPriceKwh(c);

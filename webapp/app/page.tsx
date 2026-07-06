@@ -13,6 +13,7 @@ import AboutModal from "@/components/AboutModal";
 import ShareModal from "@/components/ShareModal";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import type { ChoroplethData, AreaProps } from "@/types/analysis";
+import { findGemeenteSlug } from "@/lib/pointInGemeente";
 import {
   Municipality,
   CropoutData,
@@ -222,6 +223,10 @@ export default function Home() {
     window.history.replaceState({}, "", url.toString());
   }, [selectedMunicipality, municipalities, isNational]);
 
+  // A locationId to re-select once the next gemeente load finishes (used by the
+  // "jump to gemeente" action in the detail panel from the national view).
+  const pendingSelectRef = useRef<string | null>(null);
+
   // Load data when municipality changes.
   useEffect(() => {
     if (!selectedMunicipality) return;
@@ -269,6 +274,11 @@ export default function Home() {
         setBounds(crop.metadata.bounds ?? null);
         setDetails(bundle);
         setGemeenteName(crop.metadata.gemeente ?? selectedMunicipality);
+        if (pendingSelectRef.current) {
+          const again = charges.find((f) => f.properties.locationId === pendingSelectRef.current);
+          pendingSelectRef.current = null;
+          if (again) setSelected(again);
+        }
       }
     };
 
@@ -281,17 +291,37 @@ export default function Home() {
     };
   }, [selectedMunicipality]);
 
+  // Counts shown in the filter panel: same power/kind filtering as the map layers,
+  // so "the counts reflect the current view" actually holds.
   const { passengerCount, freightCount } = useMemo(() => {
     let p = 0;
     let f = 0;
     for (const feat of chargeFeatures) {
-      if (feat.properties.layer === "freight") f++;
-      else p++;
+      if (feat.properties.maxPowerKw < filters.minPowerKw) continue;
+      if (feat.properties.layer === "freight") {
+        if (filters.dedicatedFreightOnly && feat.properties.freightKind === "hpc") continue;
+        f++;
+      } else p++;
     }
     return { passengerCount: p, freightCount: f };
-  }, [chargeFeatures]);
+  }, [chargeFeatures, filters.minPowerKw, filters.dedicatedFreightOnly]);
 
   const selectedDetail = selected ? details[selected.properties.locationId] ?? null : null;
+
+  // From the national view, jump into the gemeente containing the selected point
+  // (found via the choropleth polygons) and re-open its detail panel there.
+  const jumpToGemeente = useMemo(() => {
+    if (!selected || selectedDetail || !isNational) return undefined;
+    const [lng, lat] = selected.geometry.coordinates;
+    const slug = findGemeenteSlug(choropleth, lng, lat);
+    if (!slug) return undefined;
+    const locationId = selected.properties.locationId;
+    return () => {
+      pendingSelectRef.current = locationId;
+      setAnalysisMetric(null);
+      setSelectedMunicipality(slug);
+    };
+  }, [selected, selectedDetail, isNational, choropleth]);
 
   const handleAddressSelected = (slug: string) => {
     setSelectedMunicipality(slug);
@@ -416,9 +446,10 @@ export default function Home() {
           <LocationDetailPanel
             selected={selected}
             detail={selectedDetail}
-            loading={false}
+            loading={loading}
             slug={selectedMunicipality}
             onClose={() => setSelected(null)}
+            onJumpToGemeente={jumpToGemeente}
           />
 
           {/* Mobile filter button */}

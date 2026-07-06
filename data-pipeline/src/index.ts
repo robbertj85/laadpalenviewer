@@ -1,6 +1,6 @@
 // Orchestrator: NDW OCPI + external freight + PDOK boundaries -> static files.
 import { fetchNdw } from './fetchNdw.js';
-import { classifyLocation, aggregateStatus } from './classifyFreight.js';
+import { classifyLocation, aggregateStatus, connectorPowerW } from './classifyFreight.js';
 import { fetchBoundaries } from './fetchBoundaries.js';
 import { writeOutputs } from './writeOutputs.js';
 import { sanitizeId } from './slugify.js';
@@ -46,13 +46,15 @@ function enrich(
     lastUpdated: loc.last_updated,
     layer: meta.category,
     maxPowerKw: meta.maxPowerKw,
+    freightKind: meta.freightKind,
+    freightReason: meta.freightReason,
     evses: (loc.evses ?? []).map((evse) => ({
       ...evse,
       connectors: (evse.connectors ?? []).map((c) => {
         const tariffs = (c.tariff_ids ?? [])
           .map((id) => tariffMap.get(id))
           .filter((t): t is OCPITariff => Boolean(t));
-        const powerKw = c.max_electric_power ? c.max_electric_power / 1000 : 0;
+        const powerKw = connectorPowerW(c) / 1000;
         const resolved = resolveConnectorPrice(tariffs, powerKw, now);
         return {
           ...c,
@@ -133,6 +135,8 @@ async function main() {
         isMegawatt: meta.isMegawatt,
         status,
         priceKwh,
+        freightKind: meta.freightKind,
+        freightReason: meta.freightReason,
       });
     }
   }
@@ -169,6 +173,8 @@ async function main() {
     source: f.source,
     sourceUrl: f.sourceUrl,
     priceKwh: f.priceKwh,
+    freightKind: f.freightKind ?? 'dedicated',
+    freightReason: f.freightReason ?? 'curated',
   }));
 
   // 5. Boundaries.

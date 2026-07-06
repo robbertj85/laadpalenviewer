@@ -107,11 +107,13 @@ export default function MapDeck({
     const f: ChargeFeature[] = [];
     for (const feat of chargeFeatures) {
       if (feat.properties.maxPowerKw < filters.minPowerKw) continue;
-      if (feat.properties.layer === "freight") f.push(feat);
-      else p.push(feat);
+      if (feat.properties.layer === "freight") {
+        if (filters.dedicatedFreightOnly && feat.properties.freightKind === "hpc") continue;
+        f.push(feat);
+      } else p.push(feat);
     }
     return { passenger: p, freight: f };
-  }, [chargeFeatures, filters.minPowerKw]);
+  }, [chargeFeatures, filters.minPowerKw, filters.dedicatedFreightOnly]);
 
   const handleHover = useCallback((info: PickingInfo<ChargeFeature>) => {
     setHovered(info.object ?? null);
@@ -220,11 +222,21 @@ export default function MapDeck({
           radiusMinPixels: 5,
           radiusMaxPixels: 16,
           getRadius: (d) =>
-            d.properties.locationId === selectedLocationId ? 16 : d.properties.isMegawatt ? 11 : 8,
-          getFillColor: (d) => (priceActive ? priceColor(d.properties.priceKwh) : freightColor(d.properties.isMegawatt)),
+            d.properties.locationId === selectedLocationId
+              ? 16
+              : d.properties.isMegawatt
+                ? 11
+                : d.properties.freightKind === "hpc"
+                  ? 6
+                  : 8,
+          getFillColor: (d) =>
+            priceActive ? priceColor(d.properties.priceKwh) : freightColor(d.properties.isMegawatt, d.properties.freightKind),
+          // Ring encodes live OCPI status (freight fill stays amber for identity).
           getLineColor: (d) =>
-            d.properties.isMegawatt ? ([124, 45, 18, 255] as RGBA) : ([255, 255, 255, 230] as RGBA),
-          getLineWidth: (d) => (d.properties.isMegawatt ? 2 : 1),
+            d.properties.status === "UNKNOWN"
+              ? ([255, 255, 255, 230] as RGBA)
+              : (statusColor(d.properties.status).slice(0, 3).concat(255) as RGBA),
+          getLineWidth: (d) => (d.properties.isMegawatt ? 2.5 : 1.5),
           updateTriggers: { getRadius: [selectedLocationId], getFillColor: [priceActive, priceDomain] },
         }),
       );
@@ -311,7 +323,9 @@ export default function MapDeck({
                       hovered.properties.layer === "freight"
                         ? hovered.properties.isMegawatt
                           ? LEGEND.freightMegawatt
-                          : LEGEND.freight
+                          : hovered.properties.freightKind === "hpc"
+                            ? LEGEND.freightHpc
+                            : LEGEND.freight
                         : LEGEND[
                             (
                               {
@@ -320,11 +334,15 @@ export default function MapDeck({
                                 UNAVAILABLE: "unavailable",
                                 UNKNOWN: "unknown",
                               } as const
-                            )[hovered.properties.status]
+                            )[hovered.properties.status] ?? "unknown"
                           ],
                   }}
                 >
-                  {hovered.properties.layer === "freight" ? "Vracht" : "Personenauto"}
+                  {hovered.properties.layer === "freight"
+                    ? hovered.properties.freightKind === "hpc"
+                      ? "Truck-capable ≥350 kW"
+                      : "Truck"
+                    : "Personenauto"}
                 </span>
                 {hovered.properties.maxPowerKw > 0 && <span>{hovered.properties.maxPowerKw} kW</span>}
               </div>
@@ -425,12 +443,17 @@ export default function MapDeck({
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full" style={{ background: LEGEND.freight }} />
-            <span>Vracht-laadpunt</span>
+            <span>Dedicated truck-locatie</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full" style={{ background: LEGEND.freightHpc }} />
+            <span>Truck-capable ≥350 kW</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full" style={{ background: LEGEND.freightMegawatt }} />
-            <span>Megawatt charging</span>
+            <span>Megawatt charging (MCS)</span>
           </div>
+          <div className="text-gray-400">rand = status (groen/blauw/rood)</div>
         </div>
       </div>
       )}

@@ -56,6 +56,25 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
           <span className="text-xs text-gray-500 tabular-nums">{freightCount.toLocaleString("nl-NL")}</span>
         </label>
 
+        {filters.showFreight && (
+          <label className="flex items-center gap-2 cursor-pointer pl-6">
+            <input
+              type="checkbox"
+              checked={filters.dedicatedFreightOnly}
+              onChange={(e) => set({ dedicatedFreightOnly: e.target.checked })}
+              className="w-4 h-4 accent-amber-600"
+            />
+            <span className="text-sm text-gray-800 flex items-center gap-1">
+              Alleen dedicated truck-locaties
+              <InfoTip title="Dedicated truck-locaties">
+                Verbergt snelladers die alleen op vermogen (≥350 kW DC) als truck-capable gelden, zoals
+                400 kW-lanen van personenauto-netwerken. Wat overblijft zijn locaties met een expliciet
+                trucksignaal: exploitant (Milence, WattHub…), “truck” in de naam, MCS of een logistiek depot.
+              </InfoTip>
+            </span>
+          </label>
+        )}
+
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
@@ -74,8 +93,9 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
           <span className="text-sm font-medium text-gray-700 flex items-center gap-1">
             Min. vermogen
             <InfoTip title="Minimaal vermogen">
-              Toon alleen laadpunten met een gerapporteerd maximaal connectorvermogen ≥ de gekozen kW. Let op:
-              NDW publiceert voor veel AC-laders géén vermogen (telt als 0), dus een hoge drempel verbergt die.
+              Toon alleen laadpunten met een maximaal connectorvermogen ≥ de gekozen kW. Waar NDW geen
+              vermogen publiceert wordt het afgeleid uit spanning × stroomsterkte; een klein restdeel blijft
+              onbekend (0 kW) en verdwijnt bij een hoge drempel.
             </InfoTip>
           </span>
           <span className="text-xs text-gray-500">

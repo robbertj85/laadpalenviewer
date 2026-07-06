@@ -9,9 +9,10 @@ export const STATUS_CHARGING: RGBA = [59, 130, 246, 210]; // blue-500
 export const STATUS_UNAVAILABLE: RGBA = [239, 68, 68, 210]; // red-500
 export const STATUS_UNKNOWN: RGBA = [107, 114, 128, 200]; // gray-500
 
-// Freight points: amber/orange; megawatt = red-orange.
+// Freight points: amber/orange; megawatt = red-orange; truck-capable HPC = light amber.
 export const FREIGHT: RGBA = [245, 158, 11, 235]; // amber-500
 export const FREIGHT_MEGAWATT: RGBA = [234, 88, 12, 245]; // orange-600
+export const FREIGHT_HPC: RGBA = [252, 211, 77, 220]; // amber-300
 
 export const BOUNDARY_LINE: RGBA = [79, 70, 229, 200]; // indigo-600
 
@@ -28,8 +29,9 @@ export function statusColor(status: AggregateStatus): RGBA {
   }
 }
 
-export function freightColor(isMegawatt: boolean): RGBA {
-  return isMegawatt ? FREIGHT_MEGAWATT : FREIGHT;
+export function freightColor(isMegawatt: boolean, kind?: string): RGBA {
+  if (isMegawatt) return FREIGHT_MEGAWATT;
+  return kind === "hpc" ? FREIGHT_HPC : FREIGHT;
 }
 
 // Hex equivalents for legend / UI swatches.
@@ -40,5 +42,6 @@ export const LEGEND = {
   unknown: "#6b7280",
   freight: "#f59e0b",
   freightMegawatt: "#ea580c",
+  freightHpc: "#fcd34d",
   boundary: "#4f46e5",
 };

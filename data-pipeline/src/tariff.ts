@@ -59,11 +59,17 @@ function matchesRestrictions(r: OCPITariffRestrictions | undefined, powerKw: num
   if (r.start_date && t.date < r.start_date) return false;
   if (r.end_date && t.date > r.end_date) return false;
 
-  // Time-of-day window (supports overnight ranges where start > end).
-  if (r.start_time && r.end_time) {
-    const { start_time: s, end_time: e } = r;
+  // Time-of-day window (supports overnight ranges where start > end, and
+  // one-sided windows where only one bound is given).
+  const s = r.start_time ?? null;
+  const e = r.end_time ?? null;
+  if (s && e) {
     const within = s <= e ? t.hhmm >= s && t.hhmm <= e : t.hhmm >= s || t.hhmm <= e;
     if (!within) return false;
+  } else if (s) {
+    if (t.hhmm < s) return false;
+  } else if (e) {
+    if (t.hhmm > e) return false;
   }
   return true;
 }

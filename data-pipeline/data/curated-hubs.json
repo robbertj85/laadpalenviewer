@@ -26,6 +26,18 @@
       "sourceUrl": "https://milence.com"
     },
     {
+      "id": "milence-waddinxveen",
+      "name": "Milence Charging Hub Waddinxveen",
+      "operatorName": "Milence",
+      "city": "Waddinxveen",
+      "address": "Distripark Doelwijk (A12), Waddinxveen",
+      "lat": 52.0177,
+      "lng": 4.6199,
+      "maxPowerKw": 400,
+      "isMegawatt": false,
+      "sourceUrl": "https://milence.com/nl/press-release/milence-breidt-nederlands-netwerk-uit-in-het-hart-van-de-randstad-met-nieuwe-laadhub-in-waddinxveen/"
+    },
+    {
       "id": "watthub-geldermalsen",
       "name": "WattHub Geldermalsen",
       "operatorName": "WattHub",

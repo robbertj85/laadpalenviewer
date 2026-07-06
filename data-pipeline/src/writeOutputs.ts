@@ -40,6 +40,8 @@ function pointFeature(l: LightLocation) {
       status: l.status,
       source: l.source,
       ...(l.priceKwh != null ? { priceKwh: l.priceKwh } : {}),
+      ...(l.freightKind ? { freightKind: l.freightKind } : {}),
+      ...(l.freightReason ? { freightReason: l.freightReason } : {}),
     },
   };
 }
@@ -68,17 +70,21 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
   // Group lights by gemeente code.
   const byGemeente = new Map<string, LightLocation[]>();
   let unassigned = 0;
+  let viaFallback = 0;
   for (const l of [...passengerLights, ...freightLights]) {
-    const code = assigner.assign(l);
-    if (!code) {
+    const res = assigner.assignWithFallback(l);
+    if (!res) {
       unassigned++;
       continue;
     }
-    let arr = byGemeente.get(code);
-    if (!arr) byGemeente.set(code, (arr = []));
+    if (res.fallback) viaFallback++;
+    let arr = byGemeente.get(res.code);
+    if (!arr) byGemeente.set(res.code, (arr = []));
     arr.push(l);
   }
-  console.log(`  assigned points; ${unassigned} unassigned (kept in national files only)`);
+  console.log(
+    `  assigned points; ${viaFallback} via nearest-gemeente fallback, ${unassigned} unassigned (kept in national files only)`,
+  );
 
   // Per-gemeente crop-out + detail bundle.
   const municipalities: Array<SeedMunicipality & { passengerCount: number; freightCount: number }> = [];

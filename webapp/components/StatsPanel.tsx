@@ -14,6 +14,7 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
   const stats = useMemo(() => {
     let passenger = 0;
     let freight = 0;
+    let freightDedicated = 0;
     let megawatt = 0;
     let available = 0;
     let charging = 0;
@@ -23,17 +24,19 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
       const p = f.properties;
       if (p.layer === "freight") {
         freight++;
+        if (p.freightKind !== "hpc") freightDedicated++;
         if (p.isMegawatt) megawatt++;
       } else {
         passenger++;
+        // Status tallies match the map, which only colors passenger points by status.
+        if (p.status === "AVAILABLE") available++;
+        else if (p.status === "CHARGING") charging++;
+        else if (p.status === "UNAVAILABLE") unavailable++;
       }
-      if (p.status === "AVAILABLE") available++;
-      else if (p.status === "CHARGING") charging++;
-      else if (p.status === "UNAVAILABLE") unavailable++;
       if (p.operatorName) operators.set(p.operatorName, (operators.get(p.operatorName) ?? 0) + 1);
     }
     const topOperators = [...operators.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
-    return { passenger, freight, megawatt, available, charging, unavailable, topOperators };
+    return { passenger, freight, freightDedicated, megawatt, available, charging, unavailable, topOperators };
   }, [chargeFeatures]);
 
   return (
@@ -54,14 +57,20 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
           <div className="text-xs text-amber-900 flex items-center gap-1">
             Logistiek / vracht
             <InfoTip title="Logistiek / vracht">
-              Laadpunten geclassificeerd als zware-voertuiglader: een truck-exploitant (Milence, WattHub…),
-              de MCS/megawatt-standaard, of een DC-connector ≥ 350 kW. Gewone snelladers (150–350 kW) blijven
-              personenauto.
+              Truck-laadlocaties: <strong>dedicated</strong> voorzieningen (truck-exploitant zoals
+              Milence/WattHub, “truck” in de naam, MCS-aansluiting, of een logistiek depot met ≥150 kW DC)
+              plus <strong>truck-capable</strong> snelladers met ≥350 kW DC die niet aantoonbaar op trucks
+              zijn ingericht.
             </InfoTip>
           </div>
         </div>
       </div>
 
+      {stats.freight > 0 && (
+        <div className="text-xs text-amber-800 bg-amber-50 rounded px-2 py-1">
+          {stats.freightDedicated} dedicated · {stats.freight - stats.freightDedicated} truck-capable ≥350 kW
+        </div>
+      )}
       {stats.megawatt > 0 && (
         <div className="text-xs text-orange-700 bg-orange-50 rounded px-2 py-1">
           waarvan {stats.megawatt} megawatt-locatie{stats.megawatt !== 1 ? "s" : ""}
@@ -71,10 +80,11 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
       {/* OCPI status breakdown */}
       <div>
         <div className="text-xs font-medium text-gray-600 mb-1 flex items-center gap-1">
-          Status (OCPI-momentopname)
+          Status personenauto (OCPI-momentopname)
           <InfoTip title="OCPI-status">
             Beschikbaar/bezet/niet-beschikbaar komt uit de OCPI-status in de laatste uurlijkse momentopname van
             de NDW-data — een snapshot, geen continue realtime stream. “Bezet” = connector aan het laden.
+            Telt alleen personenauto-punten; bij truckpunten zit de status in de ringkleur op de kaart.
           </InfoTip>
         </div>
         <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">

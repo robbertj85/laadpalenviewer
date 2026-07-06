@@ -79,9 +79,12 @@ export default function AboutModal({ isOpen, onClose, onStartTutorial }: Props) 
 
           <Section title="Personenauto vs. logistiek/vracht">
             <p>
-              Een laadpunt is <strong>vracht</strong> bij: een truck-exploitant (Milence/WattHub…), de MCS/megawatt-standaard,
-              of een DC-connector ≥ 350 kW. Daardoor blijven gewone snelladers (150–350 kW) in de personenauto-laag.
-              Megawatt-locaties (≥ 1 MW) krijgen een aparte kleur.
+              Een laadpunt is <strong>dedicated truck</strong> bij een expliciet signaal: een truck-exploitant
+              (Milence/WattHub…), “truck” of “vrachtwagen” in de naam, de MCS/megawatt-standaard, of een logistiek
+              depot met ≥ 150 kW DC. Locaties die alléén op vermogen kwalificeren (DC ≥ 350 kW, zoals 400 kW-lanen
+              van personenauto-netwerken) heten <strong>truck-capable</strong> en krijgen een lichtere kleur — niet
+              elke locatie daarvan is fysiek toegankelijk voor een trekker-oplegger. Megawatt-locaties (≥ 1 MW of
+              MCS) krijgen een aparte kleur. Connectorvermogen wordt waar nodig afgeleid uit spanning × stroomsterkte.
             </p>
           </Section>
 

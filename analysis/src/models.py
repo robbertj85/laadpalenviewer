@@ -62,10 +62,19 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
     df["siting_priority"] = (raw / (raw.max() or 1) * 100).round(0)
 
     # ---- P4: congestion risk + net impact ----
-    # EVSE count: prefer live snapshot total; fall back to locations if no snapshot.
+    # EVSE count: prefer live snapshot total (EVSE grain); the fallback is
+    # LOCATION grain (~2-10 EVSEs per location) and only fires for gemeenten
+    # without any snapshot — treat those rows as underestimates.
     evse = df["evse_total"].fillna(df["chargers_passenger"].fillna(0) + df["chargers_freight"].fillna(0))
-    # Potential peak (planning): all EVSEs x assumed kW x concurrency.
-    df["potential_peak_load_kw"] = (evse * ASSUMED_EVSE_KW * CONCURRENCY).round(0)
+    # Potential peak (planning): passenger EVSEs at ~11 kW plus freight/truck
+    # locations at ~150 kW each, x concurrency. Freight sites are counted per
+    # location (crop-outs don't carry per-site bay counts) — conservative for
+    # multi-bay hubs, but far closer than pricing an MCS hub as one AC post.
+    freight_locs = df["chargers_freight"].fillna(0)
+    passenger_evse = (evse - freight_locs).clip(lower=0)
+    df["potential_peak_load_kw"] = (
+        (passenger_evse * ASSUMED_EVSE_KW + freight_locs * AVG_FREIGHT_KW) * CONCURRENCY
+    ).round(0)
     # Live peak now (grounded in OCPI status): EVSEs charging now x assumed kW.
     df["live_peak_load_kw"] = (df["charging_now"] * ASSUMED_EVSE_KW).round(0)
     # Scenario base = potential peak; kept as est_peak_load_kw for the scorecard slider.
@@ -79,6 +88,8 @@ def add_models(df: pd.DataFrame) -> pd.DataFrame:
     df["gap_pct"] = _pct_rank(-df["supply_gap"])  # high = more underserved
     # Price percentile: high = relatively expensive vs other gemeenten.
     df["price_pct"] = _pct_rank(df["price_kwh_median"]) if df["price_kwh_median"].notna().any() else np.nan
+    # Freight/logistics percentile: rank on installed truck-charging power.
+    df["freight_pct"] = _pct_rank(df["freight_power_kw"]) if df["freight_power_kw"].notna().any() else np.nan
 
     df.attrs["model_metrics"] = metrics
     print(f"  [models] demand OOF R²={metrics['r2_oof']} MAE={metrics['mae_oof']}; "

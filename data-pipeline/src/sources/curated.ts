@@ -35,6 +35,8 @@ export const curatedSource: FreightSource = {
       maxPowerKw: h.maxPowerKw ?? 0,
       isMegawatt: h.isMegawatt ?? false,
       sourceUrl: h.sourceUrl,
+      freightKind: 'dedicated',
+      freightReason: 'curated',
     }));
   },
 };
