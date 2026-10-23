@@ -1,18 +1,18 @@
 # Shared helpers for the deploy/ scripts. Source, don't run.
 HOST="${DEPLOY_HOST:-hetzner}"   # from ~/.ssh/config
 
-# Name of the running Coolify container for compose service $1 of this app
-# (Coolify names them <service>-<resource-uuid>; find it by labels instead).
+# Coolify names containers <service>-<custom_internal_name>: the resource has
+# "consistent container names" on with internal name "laadpalenviewer", so
+# these are static: web-laadpalenviewer, app-laadpalenviewer, worker-laadpalenviewer.
 lpv_container() {
-  ssh "$HOST" "docker ps --filter label=com.docker.compose.service=$1 --format '{{.Names}} {{.Label \"coolify.resourceName\"}}'" \
-    | awk '$2 ~ /laadpalenviewer/ {print $1; exit}'
+  echo "$1-laadpalenviewer"
 }
 
 require_container() {
   local name
   name="$(lpv_container "$1")"
-  if [[ -z "$name" ]]; then
-    echo "geen draaiende '$1'-container van laadpalenviewer gevonden op $HOST (Coolify-resource al gedeployed?)" >&2
+  if [[ "$(ssh "$HOST" "docker inspect -f '{{.State.Running}}' '$name' 2>/dev/null")" != "true" ]]; then
+    echo "container '$name' draait niet op $HOST (Coolify-resource al gedeployed?)" >&2
     exit 1
   fi
   echo "$name"

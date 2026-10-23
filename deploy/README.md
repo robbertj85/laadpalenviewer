@@ -40,7 +40,7 @@ Wat er anders is dan op Vercel:
 | `Dockerfile.worker` | Node-pipeline + Python-analyse, start `data-pipeline/src/scheduler.ts` |
 | `migrate-history.sh` | alle historie uit git (ook de door de rollup verwijderde uurbestanden) → `history.db` op de server |
 | `pull-data.sh` | live data + laatste history-backup naar je lokale repo |
-| `lib.sh` | vindt de Coolify-container (`<service>-<uuid>`) via labels |
+| `lib.sh` | vaste containernamen: `web-`, `app-`, `worker-laadpalenviewer` |
 
 Volumes (Coolify zet de resource-uuid ervoor):
 
@@ -64,13 +64,17 @@ volume `…_lpv-state` mee in een off-site backup (of `pull-data.sh` periodiek).
      bot-commits zonder compose-bestand)
    - Build Pack: **Docker Compose**, Docker Compose Location `/docker-compose.yaml`
    - geen domein invullen (NPM regelt dat)
+   - *Advanced*: **Consistent Container Names** aan, Custom Internal Name
+     `laadpalenviewer` → vaste namen `web-/app-/worker-laadpalenviewer`
+     (anders krijgt elke deploy een nieuwe naam met tijdstempel)
    - Environment Variables (optioneel): `NEXT_PUBLIC_UMAMI_SRC`,
      `NEXT_PUBLIC_UMAMI_WEBSITE_ID`, `OCM_API_KEY`
    - Deploy. De worker ziet lege volumes en draait direct `generate` +
      analyse (~2 min); daarna elk uur een snapshot.
 
 3. **Nginx Proxy Manager**: proxy host `prototype.transportlab.app` →
-   *Custom locations* → `/laadpalenviewer` → `http` / `laadpalenviewer` / `80`.
+   *Custom locations* → `/laadpalenviewer` (zonder slash aan het eind: Next
+   serveert de app op `/laadpalenviewer`) → `http` / `laadpalenviewer` / `80`.
    Controleer `https://prototype.transportlab.app/laadpalenviewer`.
 
 4. **GitHub Action uitzetten**:
@@ -92,8 +96,8 @@ volume `…_lpv-state` mee in een off-site backup (of `pull-data.sh` periodiek).
 - Nieuwe code: push naar `main` (Coolify deployt) of *Redeploy* in Coolify.
   Data-volumes blijven staan.
 - Logs: Coolify → resource → *Logs* → `worker`, of
-  `ssh hetzner docker logs -f $(source deploy/lib.sh; lpv_container worker)`.
-- Job handmatig: `docker exec <worker> npm run snapshot` /
+  `ssh hetzner docker logs -f worker-laadpalenviewer`.
+- Job handmatig: `docker exec worker-laadpalenviewer npm run snapshot` /
   `npm run generate -- --refresh`.
 - Lokaal ontwikkelen met live data: `./deploy/pull-data.sh`.
 - Instelbaar in de worker: `LPV_SNAPSHOT_MINUTE`, `LPV_NIGHTLY_AT`, `LPV_BACKUP_KEEP`.
