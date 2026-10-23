@@ -47,14 +47,16 @@ const nextConfig: NextConfig = {
           { key: "Content-Security-Policy", value: csp("*") },
         ],
       },
-      {
-        source: "/((?!embed).*)",
+      // Everything but /embed. The root needs its own rule: under a basePath
+      // the catch-all becomes "/<base>/(...)" and no longer matches "/<base>".
+      ...["/", "/((?!embed).*)"].map((source) => ({
+        source,
         headers: [
           ...securityHeaders,
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Content-Security-Policy", value: csp("'none'") },
         ],
-      },
+      })),
       {
         // Crop-out + national GeoJSON: cache 1 hour.
         source: "/data/:path*.geojson",
