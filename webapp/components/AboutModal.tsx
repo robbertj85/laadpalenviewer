@@ -71,19 +71,26 @@ export default function AboutModal({ isOpen, onClose, onStartTutorial }: Props) 
                 <strong>PDOK CBS Gebiedsindelingen</strong> — gemeente- en provinciegrenzen. <strong>PDOK Locatieserver</strong> — adres zoeken.
               </li>
               <li>
-                <strong>Open Charge Map</strong> + handmatig samengestelde truck-hubs (Milence, WattHub) — extra
-                vrachtlocaties.
+                <strong>NAL Laadkaart zwaar vervoer</strong> (RVO / Charge It Up) — publieke en semi-publieke
+                laadlocaties voor vrachtwagens, met voertuigcategorieën (bakwagen, trekker-oplegger, LZV).
+                Gekoppeld aan NDW-locaties op afstand en exploitant; locaties die niet in NDW staan, verschijnen
+                als losse punten zonder live status.
+              </li>
+              <li>
+                <strong>Open Charge Map</strong> — extra vrachtlocaties.
               </li>
             </ul>
           </Section>
 
           <Section title="Personenauto vs. logistiek/vracht">
             <p>
-              Een laadpunt is <strong>dedicated truck</strong> bij een expliciet signaal: een truck-exploitant
+              Een laadpunt is <strong>dedicated truck</strong> bij een expliciet signaal: de NAL-laadkaart zwaar
+              vervoer noemt het dedicated of geschikt voor trekker-oplegger/LZV, een truck-exploitant
               (Milence/WattHub…), “truck” of “vrachtwagen” in de naam, de MCS/megawatt-standaard, of een logistiek
               depot met ≥ 150 kW DC. Locaties die alléén op vermogen kwalificeren (DC ≥ 350 kW, zoals 400 kW-lanen
-              van personenauto-netwerken) heten <strong>truck-capable</strong> en krijgen een lichtere kleur — niet
-              elke locatie daarvan is fysiek toegankelijk voor een trekker-oplegger. Megawatt-locaties (≥ 1 MW of
+              van personenauto-netwerken) of die de NAL-kaart alleen voor bestelauto’s/bakwagens noemt, heten{" "}
+              <strong>truck-capable</strong> en krijgen een lichtere kleur — niet elke locatie daarvan is fysiek
+              toegankelijk voor een trekker-oplegger. Megawatt-locaties (≥ 1 MW of
               MCS) krijgen een aparte kleur. Connectorvermogen wordt waar nodig afgeleid uit spanning × stroomsterkte.
             </p>
           </Section>
@@ -143,7 +150,7 @@ export default function AboutModal({ isOpen, onClose, onStartTutorial }: Props) 
           </Section>
 
           <p className="text-xs text-gray-400 pt-2 border-t">
-            Attributie: data © CBS (CC-BY 4.0), PDOK (CC0), NDW (open data), Open Charge Map. Voor operationeel
+            Attributie: data © CBS (CC-BY 4.0), PDOK (CC0), NDW (open data), NAL Laadkaart zwaar vervoer (RVO / Charge It Up), Open Charge Map. Voor operationeel
             gebruik altijd de bron raadplegen.
           </p>
         </div>

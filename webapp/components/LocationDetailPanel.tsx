@@ -31,6 +31,15 @@ const FREIGHT_REASON_LABEL: Record<string, string> = {
   motorway: "snelweglocatie ≥350 kW",
   power: "alleen op vermogen (≥350 kW DC)",
   curated: "handmatig toegevoegde hub",
+  "vehicle-type": "voertuigtype vrachtwagen (OCPI)",
+  nal: "NAL-laadkaart zwaar vervoer",
+};
+
+const VEHICLE_LABEL: Record<string, string> = {
+  bestelauto: "grote bestelauto",
+  bakwagen: "bakwagen",
+  "trekker-oplegger": "trekker-oplegger",
+  lzv: "LZV",
 };
 
 function connectorPriceKwh(c: EnrichedConnector): number | null {
@@ -123,6 +132,45 @@ export default function LocationDetailPanel({ selected, detail, loading, onClose
             <div className="text-xs text-gray-500 mt-1">Bron: {p.source.toUpperCase()}</div>
           </div>
         </div>
+
+        {/* Heavy-transport details (NAL Laadkaart zwaar vervoer) */}
+        {p.hdv && (
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm text-gray-700 flex items-center gap-2">
+              <Truck className="h-4 w-4" />
+              Zwaar vervoer
+            </h4>
+            <div className="bg-amber-50 rounded p-3 text-sm space-y-1">
+              <div className="flex justify-between gap-2">
+                <span className="text-gray-600">Voertuigen:</span>
+                <span className="text-right">
+                  {p.hdv.vehicles.length ? p.hdv.vehicles.map((v) => VEHICLE_LABEL[v] ?? v).join(", ") : "onbekend"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Toegang:</span>
+                <span>{p.hdv.access === "semi-public" ? "Semi-publiek" : "Publiek"}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Dedicated voor zwaar vervoer:</span>
+                <span>{p.hdv.dedicated ? "Ja" : "Nee (gedeeld)"}</span>
+              </div>
+              {p.hdv.chargePoints != null && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Laadpunten:</span>
+                  <span>{p.hdv.chargePoints}</span>
+                </div>
+              )}
+              {p.hdv.lanes != null && (
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Doorrijvakken:</span>
+                  <span>{p.hdv.lanes}</span>
+                </div>
+              )}
+              <div className="text-xs text-gray-500 pt-1">Bron: NAL Laadkaart zwaar vervoer (RVO / Charge It Up)</div>
+            </div>
+          </div>
+        )}
 
         {/* Usage over time (gemeente view only; per-gemeente snapshot history) */}
         <UsageChart locationId={p.locationId} />

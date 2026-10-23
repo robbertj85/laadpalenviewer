@@ -67,9 +67,10 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
             <span className="text-sm text-gray-800 flex items-center gap-1">
               Alleen dedicated truck-locaties
               <InfoTip title="Dedicated truck-locaties">
-                Verbergt snelladers die alleen op vermogen (≥350 kW DC) als truck-capable gelden, zoals
-                400 kW-lanen van personenauto-netwerken. Wat overblijft zijn locaties met een expliciet
-                trucksignaal: exploitant (Milence, WattHub…), “truck” in de naam, MCS of een logistiek depot.
+                Verbergt truck-capable locaties die gedeeld worden met personenauto’s, zoals 400 kW-lanen
+                van personenauto-netwerken. Wat overblijft zijn locaties met een expliciet trucksignaal: de
+                NAL-laadkaart zwaar vervoer, een truck-exploitant (Milence, WattHub…), “truck” in de naam, MCS
+                of een logistiek depot.
               </InfoTip>
             </span>
           </label>

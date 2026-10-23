@@ -27,6 +27,7 @@ export interface OCPIEVSE {
   physical_reference?: string;
   floor_level?: string;
   coordinates?: OCPICoordinates;
+  parking?: OCPIParking[]; // OCPI 2.3
   last_updated: string;
 }
 
@@ -34,6 +35,11 @@ export interface OCPIParty {
   name: string;
   website?: string;
   logo?: { url: string };
+}
+
+// OCPI 2.3 parking (location parking_places / EVSE parking).
+export interface OCPIParking {
+  vehicle_types?: string[];
 }
 
 export interface OCPILocation {
@@ -55,6 +61,7 @@ export interface OCPILocation {
   suboperator?: OCPIParty;
   time_zone?: string;
   opening_times?: { twentyfourseven?: boolean };
+  parking_places?: OCPIParking[]; // OCPI 2.3; not in NDW's 2.2.1 feed yet
   charging_when_closed?: boolean;
   last_updated: string;
 }
@@ -105,7 +112,25 @@ export type ChargeCategory = 'passenger' | 'freight';
 // 'dedicated' = explicit truck facility (operator/name/MCS/curated);
 // 'hpc' = only qualifies on raw DC power >= 350 kW (truck-capable, not necessarily truck-accessible).
 export type FreightKind = 'dedicated' | 'hpc';
-export type FreightReason = 'operator' | 'truck-name' | 'mcs' | 'depot-name' | 'motorway' | 'power' | 'curated';
+export type FreightReason =
+  | 'operator'
+  | 'truck-name'
+  | 'mcs'
+  | 'vehicle-type'
+  | 'depot-name'
+  | 'motorway'
+  | 'power'
+  | 'curated'
+  | 'nal';
+
+// Heavy-vehicle details from the NAL "Laadkaart zwaar vervoer" (sources/nal.ts).
+export interface HdvInfo {
+  dedicated: boolean; // NAL "dedicated voor zwaar vervoer"
+  access: 'public' | 'semi-public';
+  vehicles: string[]; // e.g. ['bestelauto', 'bakwagen', 'trekker-oplegger', 'lzv']
+  chargePoints?: number;
+  lanes?: number; // drive-through bays
+}
 
 // Classification metadata derived from a location's connectors.
 export interface ClassificationMeta {
@@ -136,11 +161,12 @@ export interface LightLocation {
   maxPowerKw: number;
   isMegawatt: boolean;
   status: AggregateStatus;
-  source: string; // 'ndw' | 'curated' | 'eafo' | 'ocm'
+  source: string; // 'ndw' | 'nal' | 'curated' | 'eafo' | 'ocm'
   sourceUrl?: string;
   priceKwh?: number; // cheapest currently-applicable €/kWh across this location's connectors
   freightKind?: FreightKind;
   freightReason?: FreightReason;
+  hdv?: HdvInfo;
 }
 
 // Normalized external freight location (from sources/*).
@@ -160,6 +186,7 @@ export interface NormalizedFreightLocation {
   priceKwh?: number;
   freightKind?: FreightKind;
   freightReason?: FreightReason;
+  hdv?: HdvInfo;
 }
 
 // Full enriched location detail ("with details"), stored in per-gemeente bundles.

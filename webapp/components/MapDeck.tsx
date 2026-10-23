@@ -347,7 +347,7 @@ export default function MapDeck({
                 >
                   {hovered.properties.layer === "freight"
                     ? hovered.properties.freightKind === "hpc"
-                      ? "Truck-capable ≥350 kW"
+                      ? "Truck-capable (gedeeld)"
                       : "Truck"
                     : "Personenauto"}
                 </span>
@@ -454,7 +454,7 @@ export default function MapDeck({
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full" style={{ background: LEGEND.freightHpc }} />
-            <span>Truck-capable ≥350 kW</span>
+            <span>Truck-capable (gedeeld)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full" style={{ background: LEGEND.freightMegawatt }} />

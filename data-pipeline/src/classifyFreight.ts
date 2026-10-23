@@ -41,12 +41,17 @@ const FREIGHT_OPERATOR_PATTERNS = [
   'wattev',
   'einride',
   'heliox truck',
+  'leap24',
+  'floading',
+  'entent',
+  'electraclear',
 ];
 
 // Explicit truck naming on the location itself ("Truck only", "Truckpoint",
-// "E-Truck", "vrachtwagen", ...). High precision in the NDW feed, but "heftruck"/
-// "vorkheftruck" (forklift) and "pallettruck" must not match.
-const TRUCK_NAME_RE = /truck|vracht|zwaar vervoer/i;
+// "E-Truck", "vrachtwagen", "LZV", ...). High precision in the NDW feed, but
+// "heftruck"/"vorkheftruck" (forklift) and "pallettruck" must not match. Not
+// "e-bus": that hits street names like "Debussylaan".
+const TRUCK_NAME_RE = /truck|vracht|zwaar vervoer|\blzv\b|bakwagen|oplegger/i;
 const FORKLIFT_RE = /(hef|vorkhef|pallet|steek)truck/gi;
 
 function nameMentionsTruck(name: string): boolean {
@@ -61,6 +66,16 @@ const DEPOT_NAME_RE = /logisti|distributiecentr|transport/i;
 const FREIGHT_PARKING_TYPES = new Set([
   'ALONG_MOTORWAY',
 ]);
+
+// OCPI 2.3 parking vehicle types for heavy vehicles. NDW only accepts OCPI 2.2.1
+// today, but AFIR (IR 2025/655) requires N2/N3 vehicle types; picked up once
+// they appear.
+const HDV_VEHICLE_TYPES = new Set(['SEMI_TRACTOR', 'RIGID', 'TRUCK_WITH_TRAILER']);
+
+function servesHeavyVehicles(loc: OCPILocation): boolean {
+  const places = [...(loc.parking_places ?? []), ...(loc.evses ?? []).flatMap((e) => e.parking ?? [])];
+  return places.some((p) => (p.vehicle_types ?? []).some((t) => HDV_VEHICLE_TYPES.has(t)));
+}
 
 const CCS_STANDARDS = new Set([
   'IEC_62196_T2_COMBO',
@@ -133,6 +148,7 @@ export function classifyLocation(loc: OCPILocation): ClassificationMeta {
   if (operatorIsFreight) freightReason = 'operator';
   else if (nameIsTruck) freightReason = 'truck-name';
   else if (hasMCS) freightReason = 'mcs';
+  else if (servesHeavyVehicles(loc)) freightReason = 'vehicle-type';
   else if (nameIsDepot) freightReason = 'depot-name';
   else if (parkingIsFreight) freightReason = 'motorway';
 

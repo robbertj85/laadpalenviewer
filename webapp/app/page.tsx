@@ -178,7 +178,7 @@ export default function Home() {
         body: (
           <>
             <p>
-              Bronnen: NDW DOT-NL, CBS, PDOK, Open Charge Map. Vermogen wordt aangenomen (NDW mist het meestal);
+              Bronnen: NDW DOT-NL, NAL Laadkaart zwaar vervoer, CBS, PDOK, Open Charge Map. Vermogen wordt aangenomen (NDW mist het meestal);
               congestie is gemodelleerd.
             </p>
             <p className="text-gray-400">Volledige uitleg staat onder “Over”.</p>
@@ -468,7 +468,7 @@ export default function Home() {
           <button onClick={() => setShowAbout(true)} className="text-blue-600 hover:underline">
             Info over databronnen
           </button>
-          <span>Bronnen: NDW OCPI · PDOK/CBS · Open Charge Map</span>
+          <span>Bronnen: NDW OCPI · NAL zwaar vervoer · PDOK/CBS · Open Charge Map</span>
         </div>
       </footer>
 

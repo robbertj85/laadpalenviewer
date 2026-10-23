@@ -27,10 +27,20 @@ export interface ChargeProperties {
   maxPowerKw: number;
   isMegawatt: boolean;
   status: AggregateStatus;
-  source: string; // 'ndw' | 'curated' | 'eafo' | 'ocm'
+  source: string; // 'ndw' | 'nal' | 'curated' | 'eafo' | 'ocm'
   priceKwh?: number; // cheapest currently-applicable €/kWh at this location
   freightKind?: FreightKind;
   freightReason?: string;
+  hdv?: HdvInfo;
+}
+
+// Heavy-vehicle details from the NAL "Laadkaart zwaar vervoer".
+export interface HdvInfo {
+  dedicated: boolean;
+  access: "public" | "semi-public";
+  vehicles: string[]; // 'bestelauto' | 'bakwagen' | 'trekker-oplegger' | 'lzv'
+  chargePoints?: number;
+  lanes?: number;
 }
 
 export interface BoundaryProperties {

@@ -57,10 +57,11 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
           <div className="text-xs text-amber-900 flex items-center gap-1">
             Logistiek / vracht
             <InfoTip title="Logistiek / vracht">
-              Truck-laadlocaties: <strong>dedicated</strong> voorzieningen (truck-exploitant zoals
-              Milence/WattHub, “truck” in de naam, MCS-aansluiting, of een logistiek depot met ≥150 kW DC)
-              plus <strong>truck-capable</strong> snelladers met ≥350 kW DC die niet aantoonbaar op trucks
-              zijn ingericht.
+              Truck-laadlocaties: <strong>dedicated</strong> voorzieningen (op de NAL-laadkaart zwaar
+              vervoer als dedicated of geschikt voor trekker-oplegger/LZV, een truck-exploitant zoals Milence,
+              “truck” in de naam, MCS-aansluiting, of een logistiek depot met ≥150 kW DC) plus{" "}
+              <strong>truck-capable</strong> locaties die gedeeld worden met personenauto’s: snelladers met
+              ≥350 kW DC, of locaties die de NAL-laadkaart alleen voor bestelauto’s/bakwagens noemt.
             </InfoTip>
           </div>
         </div>
@@ -68,7 +69,7 @@ export default function StatsPanel({ gemeente, chargeFeatures }: StatsPanelProps
 
       {stats.freight > 0 && (
         <div className="text-xs text-amber-800 bg-amber-50 rounded px-2 py-1">
-          {stats.freightDedicated} dedicated · {stats.freight - stats.freightDedicated} truck-capable ≥350 kW
+          {stats.freightDedicated} dedicated · {stats.freight - stats.freightDedicated} truck-capable (gedeeld)
         </div>
       )}
       {stats.megawatt > 0 && (
