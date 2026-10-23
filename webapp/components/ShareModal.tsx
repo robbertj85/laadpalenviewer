@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X, Copy, Check } from "lucide-react";
+import { BASE_PATH } from "@/lib/basePath";
 
 interface Props {
   isOpen: boolean;
@@ -16,8 +17,8 @@ export default function ShareModal({ isOpen, onClose, municipality, municipality
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
   const slug = municipality === "nederland" ? "alle-gemeenten" : municipality;
-  const shareUrl = `${origin}/?gemeente=${slug}`;
-  const embedCode = `<iframe src="${origin}/embed?gemeente=${slug}" width="100%" height="600" style="border:0" title="Laadpalenviewer ${municipalityName}"></iframe>`;
+  const shareUrl = `${origin}${BASE_PATH}/?gemeente=${slug}`;
+  const embedCode = `<iframe src="${origin}${BASE_PATH}/embed?gemeente=${slug}" width="100%" height="600" style="border:0" title="Laadpalenviewer ${municipalityName}"></iframe>`;
 
   const copy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

@@ -1,21 +1,41 @@
 """Charger supply + usage per gemeente, from our own committed artifacts.
 
 - supply: municipalities.json (counts) + crop-out GeoJSONs (power, megawatt)
-- usage: latest per-gemeente snapshot day file (avg occupancy %)
+- usage: latest day per gemeente in the usage history DB (avg occupancy %)
 """
 from __future__ import annotations
 import json
+import sqlite3
 import statistics
 import pandas as pd
-from ..paths import MUNICIPALITIES_JSON, GEMEENTEN_DIR, SNAPSHOTS_DIR
+from ..paths import MUNICIPALITIES_JSON, GEMEENTEN_DIR, HISTORY_DB
+
+NO_SAMPLE = 255  # history.db occ byte for "no sample this hour"
+_db: sqlite3.Connection | None = None
+
+
+def _history() -> sqlite3.Connection | None:
+    global _db
+    if _db is None and HISTORY_DB.exists():
+        _db = sqlite3.connect(f"file:{HISTORY_DB}?mode=ro", uri=True)
+    return _db
 
 
 def _latest_day(slug: str) -> dict | None:
-    d = SNAPSHOTS_DIR / slug
-    if not d.is_dir():
+    """The gemeente's most recent day of hourly samples, shaped like the old
+    per-day snapshot file: {"locations": {locId: {"n": int, "occ": [24]}}}."""
+    db = _history()
+    if db is None:
         return None
-    days = sorted(p for p in d.glob("*.json") if p.name != "daily.json")
-    return json.loads(days[-1].read_text()) if days else None
+    rows = db.execute(
+        """SELECT l.ocpi_id, d.n, d.occ FROM occ_day d JOIN location l ON l.id = d.loc
+            WHERE l.slug = ?1 AND d.day = (SELECT MAX(d2.day) FROM occ_day d2
+                                             JOIN location l2 ON l2.id = d2.loc WHERE l2.slug = ?1)""",
+        (slug,),
+    ).fetchall()
+    if not rows:
+        return None
+    return {"locations": {loc: {"n": n, "occ": [None if b == NO_SAMPLE else b for b in occ]} for loc, n, occ in rows}}
 
 
 def _snapshot_metrics(slug: str) -> dict:

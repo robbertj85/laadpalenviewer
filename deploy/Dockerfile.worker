@@ -1,0 +1,29 @@
+# Data worker: hourly snapshot + nightly generate/analysis/backup (data-pipeline/src/scheduler.ts).
+FROM node:22-bookworm-slim
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-venv ca-certificates tzdata \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+
+COPY analysis/requirements.txt analysis/requirements.txt
+RUN python3 -m venv /opt/venv && /opt/venv/bin/pip install --no-cache-dir -r analysis/requirements.txt
+
+COPY data-pipeline/package.json data-pipeline/package-lock.json data-pipeline/
+RUN cd data-pipeline && npm ci
+COPY data-pipeline/ data-pipeline/
+COPY analysis/src analysis/src
+
+ENV TZ=Europe/Amsterdam \
+    LPV_PUBLIC_DIR=/srv/lpv/public \
+    LPV_STATE_DIR=/srv/lpv/state \
+    LPV_HISTORY_DB=/srv/lpv/state/history.db \
+    LPV_CACHE_DIR=/srv/lpv/cache/pipeline \
+    LPV_ANALYSIS_CACHE_DIR=/srv/lpv/cache/analysis \
+    LPV_GOLD_DIR=/srv/lpv/state/gold \
+    LPV_ANALYSIS_DIR=/app/analysis \
+    LPV_PYTHON=/opt/venv/bin/python
+# Mount points owned by node: Docker seeds empty named volumes from these.
+RUN mkdir -p /srv/lpv/public /srv/lpv/state /srv/lpv/cache && chown -R node:node /srv/lpv
+USER node
+WORKDIR /app/data-pipeline
+CMD ["node_modules/.bin/tsx", "src/scheduler.ts"]

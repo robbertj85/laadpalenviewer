@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 *.log
+
+# Generated data: produced on the server by the worker (deploy/), not committed.
+# For local dev: ./deploy/pull-data.sh, or run the pipeline (data-pipeline/README).
+webapp/public/data/
+webapp/public/municipalities.json

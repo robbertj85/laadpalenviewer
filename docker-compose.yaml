@@ -1,0 +1,79 @@
+# Coolify "Docker Compose" resource for prototype.transportlab.app/laadpalenviewer.
+# Optional settings in the Coolify UI (Environment Variables): OCM_API_KEY,
+# NEXT_PUBLIC_UMAMI_SRC, NEXT_PUBLIC_UMAMI_WEBSITE_ID.
+# Nginx Proxy Manager: proxy host prototype.transportlab.app, custom location
+# /laadpalenviewer -> http://laadpalenviewer:80 on the shared `coolify` network
+# (no URI rewrite). See deploy/README.md.
+#
+#   web     nginx: data files from the volume + proxy to app
+#   app     Next.js server (UI, /api/geocode, /api/usage)
+#   worker  hourly snapshot + nightly generate/analysis/backup (data-pipeline/src/scheduler.ts)
+services:
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.nginx
+    restart: unless-stopped
+    volumes:
+      - lpv-public:/srv/lpv/public:ro
+    expose:
+      - "80"
+    networks:
+      default:
+      coolify:
+        aliases:
+          - laadpalenviewer
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://127.0.0.1/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    # worker first: it creates the volumes' directories with the right owner
+    depends_on:
+      - worker
+      - app
+
+  app:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+      args:
+        - NEXT_PUBLIC_BASE_PATH=/laadpalenviewer
+        - NEXT_PUBLIC_UMAMI_SRC=${NEXT_PUBLIC_UMAMI_SRC:-}
+        - NEXT_PUBLIC_UMAMI_WEBSITE_ID=${NEXT_PUBLIC_UMAMI_WEBSITE_ID:-}
+    restart: unless-stopped
+    volumes:
+      # Read-write mount, but the app opens history.db read-only (WAL needs the -shm file)
+      - lpv-state:/srv/lpv/state
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/laadpalenviewer').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - worker
+
+  worker:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.worker
+    restart: unless-stopped
+    init: true
+    environment:
+      - OCM_API_KEY=${OCM_API_KEY:-}
+    volumes:
+      - lpv-public:/srv/lpv/public
+      - lpv-state:/srv/lpv/state
+      - lpv-cache:/srv/lpv/cache
+    mem_limit: 4g
+
+volumes:
+  lpv-public:   # web-served: municipalities.json, data/ (regenerated nightly)
+  lpv-state:    # history.db + backups/ + gold/  <- irreplaceable, back this up
+  lpv-cache:    # download caches (safe to delete)
+
+networks:
+  coolify:
+    external: true

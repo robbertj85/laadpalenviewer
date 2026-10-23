@@ -15,7 +15,10 @@ een gemeente worden alle details (laadpunten, connectoren, tarieven) direct gela
 
 ```
 data-pipeline/   Node/TS generatiestap -> schrijft statische JSON/GeoJSON naar webapp/public/data
-webapp/          Next.js 16 + React 19 + deck.gl + MapLibre (statisch te hosten, bv. Vercel)
+webapp/          Next.js 16 + React 19 + deck.gl + MapLibre
+analysis/        Python-analyse (gemeente-metrics voor de choropleth)
+deploy/          Coolify-deploy op de VPS (prototype.transportlab.app/laadpalenviewer), zie deploy/README.md
+docker-compose.yaml  Coolify Docker Compose-resource (web + app + worker)
 ```
 
 ## Databronnen
@@ -25,6 +28,10 @@ webapp/          Next.js 16 + React 19 + deck.gl + MapLibre (statisch te hosten,
 - Open Charge Map API (vrije `OCM_API_KEY`), EAFO (optionele statische export), curated hubs
 
 ## Data genereren
+
+Gegenereerde data staat niet in git. Op de server maakt de worker alles aan
+(zie `deploy/README.md`). Lokaal: `./deploy/pull-data.sh` haalt de live data op,
+of genereer zelf:
 
 ```bash
 cd data-pipeline
@@ -41,6 +48,10 @@ Dit schrijft naar `webapp/public/`:
 - `data/nederland-passenger.geojson` / `data/nederland-freight.geojson` — landelijk, alle punten, geen details
 - `data/provinces.geojson` — provinciegrenzen
 - `municipalities.json` — gemeentelijst met tellingen
+
+Gebruikshistorie (uurlijkse bezetting per locatie) staat in een SQLite-bestand
+(`data-pipeline/.data/history.db`, op de server `state/history.db`): `npm run snapshot`
+voegt het huidige uur toe; de webapp leest het via `/api/usage`.
 
 ## Webapp draaien
 

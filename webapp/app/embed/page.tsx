@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import { withBase } from "@/lib/basePath";
 import {
   CropoutData,
   ChargeFeature,
@@ -29,14 +30,14 @@ function EmbedInner() {
     const load = async () => {
       if (slug === "nederland") {
         const [p, f] = (await Promise.all([
-          fetch("/data/nederland-passenger.geojson").then((r) => r.json()),
-          fetch("/data/nederland-freight.geojson").then((r) => r.json()),
+          fetch(withBase("/data/nederland-passenger.geojson")).then((r) => r.json()),
+          fetch(withBase("/data/nederland-freight.geojson")).then((r) => r.json()),
         ])) as CropoutData[];
         if (cancelled) return;
         setChargeFeatures([...(p.features as ChargeFeature[]), ...(f.features as ChargeFeature[])]);
         setBounds(NL_BOUNDS);
       } else {
-        const crop = (await fetch(`/data/gemeenten/${slug}.geojson`).then((r) => r.json())) as CropoutData;
+        const crop = (await fetch(withBase(`/data/gemeenten/${slug}.geojson`)).then((r) => r.json())) as CropoutData;
         if (cancelled) return;
         setChargeFeatures(crop.features.filter((f) => f.properties.type === "charge") as ChargeFeature[]);
         setBoundaryFeatures(crop.features.filter((f) => f.properties.type === "boundary") as BoundaryFeature[]);

@@ -48,12 +48,11 @@ interface Props {
   selected: ChargeFeature | null;
   detail: EnrichedLocation | null;
   loading: boolean;
-  slug?: string; // gemeente slug for usage history (undefined / 'nederland' = no chart)
   onClose: () => void;
   onJumpToGemeente?: () => void;
 }
 
-export default function LocationDetailPanel({ selected, detail, loading, slug, onClose, onJumpToGemeente }: Props) {
+export default function LocationDetailPanel({ selected, detail, loading, onClose, onJumpToGemeente }: Props) {
   if (!selected) return null;
   const p = selected.properties;
   const isFreight = p.layer === "freight";
@@ -126,7 +125,7 @@ export default function LocationDetailPanel({ selected, detail, loading, slug, o
         </div>
 
         {/* Usage over time (gemeente view only; per-gemeente snapshot history) */}
-        {slug && slug !== "nederland" && <UsageChart slug={slug} locationId={p.locationId} />}
+        <UsageChart locationId={p.locationId} />
 
         {loading && (
           <div className="text-sm text-gray-500 italic flex items-center gap-2">

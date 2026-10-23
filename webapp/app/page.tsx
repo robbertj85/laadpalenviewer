@@ -10,6 +10,7 @@ import LocationDetailPanel from "@/components/LocationDetailPanel";
 import LayerSwitcher from "@/components/LayerSwitcher";
 import GemeenteScorecard from "@/components/GemeenteScorecard";
 import AboutModal from "@/components/AboutModal";
+import { withBase } from "@/lib/basePath";
 import ShareModal from "@/components/ShareModal";
 import GuidedTour, { type TourStep } from "@/components/GuidedTour";
 import type { ChoroplethData, AreaProps } from "@/types/analysis";
@@ -59,7 +60,7 @@ export default function Home() {
 
   // Load the analysis choropleth dataset once.
   useEffect(() => {
-    fetch("/data/derived/gemeente-metrics.geojson")
+    fetch(withBase("/data/derived/gemeente-metrics.geojson"))
       .then((r) => (r.ok ? r.json() : null))
       .then((d: ChoroplethData | null) => d && setChoropleth(d))
       .catch(() => {});
@@ -193,7 +194,7 @@ export default function Home() {
 
   // Load municipalities once.
   useEffect(() => {
-    fetch("/municipalities.json")
+    fetch(withBase("/municipalities.json"))
       .then((r) => r.json())
       .then((data: Municipality[]) => {
         const sorted = data.sort((a, b) => {
@@ -237,9 +238,9 @@ export default function Home() {
     const load = async () => {
       if (selectedMunicipality === "nederland") {
         const [pRes, fRes, provRes] = await Promise.all([
-          fetch("/data/nederland-passenger.geojson"),
-          fetch("/data/nederland-freight.geojson"),
-          fetch("/data/provinces.geojson"),
+          fetch(withBase("/data/nederland-passenger.geojson")),
+          fetch(withBase("/data/nederland-freight.geojson")),
+          fetch(withBase("/data/provinces.geojson")),
         ]);
         const [p, f, prov] = (await Promise.all([pRes.json(), fRes.json(), provRes.json()])) as CropoutData[];
         if (cancelled) return;
@@ -253,9 +254,9 @@ export default function Home() {
         setGemeenteName("Nederland");
       } else {
         const [cropRes, detRes, statusRes] = await Promise.all([
-          fetch(`/data/gemeenten/${selectedMunicipality}.geojson`),
-          fetch(`/data/gemeenten/${selectedMunicipality}.details.json`),
-          fetch(`/data/status/${selectedMunicipality}.json`),
+          fetch(withBase(`/data/gemeenten/${selectedMunicipality}.geojson`)),
+          fetch(withBase(`/data/gemeenten/${selectedMunicipality}.details.json`)),
+          fetch(withBase(`/data/status/${selectedMunicipality}.json`)),
         ]);
         const crop = (await cropRes.json()) as CropoutData;
         const bundle = (await detRes.json()) as DetailBundle;
@@ -447,7 +448,6 @@ export default function Home() {
             selected={selected}
             detail={selectedDetail}
             loading={loading}
-            slug={selectedMunicipality}
             onClose={() => setSelected(null)}
             onJumpToGemeente={jumpToGemeente}
           />

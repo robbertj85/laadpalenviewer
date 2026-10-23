@@ -1,8 +1,9 @@
 // Write all static artifacts into webapp/public/.
-import { mkdir, writeFile, rm, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, rm, readFile, rename } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DATA_DIR, GEMEENTEN_DIR, MUNICIPALITIES_JSON, PIPELINE_DATA_DIR } from './paths.js';
 import { slugify } from './slugify.js';
+import { writeFileAtomic } from './fsAtomic.js';
 import type { Boundaries, BoundaryFeature } from './fetchBoundaries.js';
 import { GemeenteAssigner } from './assignGemeente.js';
 import type { LightLocation, EnrichedLocation } from './types.js';
@@ -58,9 +59,11 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
   const { passengerLights, freightLights, enrichedById, boundaries, generatedAt } = input;
   console.log('Writing outputs...');
 
-  // Fresh gemeenten dir.
-  await rm(GEMEENTEN_DIR, { recursive: true, force: true });
-  await mkdir(GEMEENTEN_DIR, { recursive: true });
+  // Build the gemeenten dir in a staging sibling and swap it in at the end, so
+  // the live site never sees an empty or half-written crop-out set.
+  const stagingDir = `${GEMEENTEN_DIR}.staging`;
+  await rm(stagingDir, { recursive: true, force: true });
+  await mkdir(stagingDir, { recursive: true });
 
   const assigner = new GemeenteAssigner(boundaries);
   const seed = JSON.parse(await readFile(join(PIPELINE_DATA_DIR, 'municipalities-seed.json'), 'utf-8')) as SeedMunicipality[];
@@ -124,8 +127,8 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
       if (d) details[l.locationId] = d;
     }
 
-    await writeFile(join(GEMEENTEN_DIR, `${slug}.geojson`), JSON.stringify(cropout));
-    await writeFile(join(GEMEENTEN_DIR, `${slug}.details.json`), JSON.stringify(details));
+    await writeFile(join(stagingDir, `${slug}.geojson`), JSON.stringify(cropout));
+    await writeFile(join(stagingDir, `${slug}.details.json`), JSON.stringify(details));
 
     const sm = seedByCode.get(code);
     municipalities.push({
@@ -139,8 +142,14 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
     });
   }
 
+  const oldDir = `${GEMEENTEN_DIR}.old`;
+  await rm(oldDir, { recursive: true, force: true });
+  await rename(GEMEENTEN_DIR, oldDir).catch(() => {});
+  await rename(stagingDir, GEMEENTEN_DIR);
+  await rm(oldDir, { recursive: true, force: true });
+
   // National lightweight files (every point, no details), split by layer.
-  await writeFile(
+  await writeFileAtomic(
     join(DATA_DIR, 'nederland-passenger.geojson'),
     JSON.stringify({
       type: 'FeatureCollection',
@@ -148,7 +157,7 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
       features: passengerLights.map(pointFeature),
     }),
   );
-  await writeFile(
+  await writeFileAtomic(
     join(DATA_DIR, 'nederland-freight.geojson'),
     JSON.stringify({
       type: 'FeatureCollection',
@@ -158,7 +167,7 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
   );
 
   // Province boundaries.
-  await writeFile(
+  await writeFileAtomic(
     join(DATA_DIR, 'provinces.geojson'),
     JSON.stringify({
       type: 'FeatureCollection',
@@ -180,7 +189,7 @@ export async function writeOutputs(input: WriteInput): Promise<void> {
     passengerCount: totalPassenger,
     freightCount: totalFreight,
   };
-  await writeFile(MUNICIPALITIES_JSON, JSON.stringify([nederland, ...municipalities], null, 2));
+  await writeFileAtomic(MUNICIPALITIES_JSON, JSON.stringify([nederland, ...municipalities], null, 2));
 
   console.log(
     `  wrote ${municipalities.length} gemeente crop-outs + detail bundles, ` +

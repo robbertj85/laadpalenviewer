@@ -15,20 +15,25 @@ TABLE = "85984NED"
 BASE = f"https://opendata.cbs.nl/ODataApi/OData/{TABLE}"
 
 # CBS measure key -> our column name (keys confirmed from DataProperties).
+# Car fields: in 2026 CBS replaced "PersonenautoSTotaal/PerHuishouden/
+# OverigeBrandstof" with the privately-owned ("Particulieren") series, ~10%
+# lower (excludes business-registered cars). No total is published anymore, so
+# autos_* now means private cars.
 FIELDS = {
     "AantalInwoners_5": "inwoners",
     "HuishoudensTotaal_29": "huishoudens",
     "GemiddeldInkomenPerInwoner_78": "inkomen_per_inwoner",
-    "PersonenautoSTotaal_104": "autos_totaal",
-    "PersonenautoSPerHuishouden_107": "autos_per_huishouden",
-    "PersonenautoSOverigeBrandstof_106": "autos_overige_brandstof",
+    "PersonenautoSParticulieren_104": "autos_totaal",
+    "PersonenautoSParticulierenPerHh_107": "autos_per_huishouden",
+    "PersonenautoSParticulierenOverige_106": "autos_overige_brandstof",
     "MateVanStedelijkheid_120": "stedelijkheid",
     "Omgevingsadressendichtheid_121": "adresdichtheid",
 }
 
 
 def fetch_cbs_gemeente(refresh: bool = False) -> pd.DataFrame:
-    cache = CACHE_DIR / f"cbs_{TABLE}_gemeente.json"
+    # Cache name carries the field set, so a key change never reuses stale rows.
+    cache = CACHE_DIR / f"cbs_{TABLE}_gemeente_v2.json"
     if cache.exists() and not refresh:
         rows = json.loads(cache.read_text())
     else:

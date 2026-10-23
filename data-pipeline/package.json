@@ -7,14 +7,20 @@
   "scripts": {
     "generate": "tsx src/index.ts",
     "generate:nocache": "tsx src/index.ts --refresh",
-    "snapshot": "tsx src/snapshot.ts"
+    "snapshot": "tsx src/snapshot.ts",
+    "import-history": "tsx src/importHistory.ts",
+    "worker": "tsx src/scheduler.ts",
+    "typecheck": "tsc --noEmit",
+    "merge-history": "tsx src/mergeHistory.ts"
   },
   "dependencies": {
     "@turf/bbox": "^7.2.0",
     "@turf/boolean-point-in-polygon": "^7.2.0",
-    "@turf/helpers": "^7.2.0"
+    "@turf/helpers": "^7.2.0",
+    "better-sqlite3": "^12.11.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20",
     "tsx": "^4.19.2",
     "typescript": "^5"

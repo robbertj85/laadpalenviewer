@@ -3,14 +3,15 @@
 import { useEffect, useMemo, useState } from "react";
 import InfoTip from "@/components/InfoTip";
 
-// Per-day snapshot file shape (data/snapshots/<slug>/<date>.json)
-interface DayFile {
-  date: string;
-  tz: string;
-  locations: Record<string, { n: number; occ: (number | null)[] }>;
+import { withBase } from "@/lib/basePath";
+
+// /api/usage response shapes (see app/api/usage/route.ts)
+interface HourlyResponse {
+  days: { date: string; occ: (number | null)[] }[];
 }
-// Daily-averages file shape (data/snapshots/<slug>/daily.json)
-type DailyFile = Record<string, Record<string, number>>;
+interface DailyResponse {
+  daily: Record<string, number>;
+}
 
 type Range = "24h" | "7d" | "30d" | "1y";
 const RANGES: { key: Range; label: string }[] = [
@@ -26,18 +27,6 @@ interface Point {
   v: number | null; // occupancy %
 }
 
-// Europe/Amsterdam local date (YYYY-MM-DD), `offset` days ago.
-function localDate(offsetDays: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - offsetDays);
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Amsterdam",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
-}
-
 async function getJson<T>(url: string): Promise<T | null> {
   try {
     const r = await fetch(url);
@@ -47,7 +36,7 @@ async function getJson<T>(url: string): Promise<T | null> {
   }
 }
 
-export default function UsageChart({ slug, locationId }: { slug: string; locationId: string }) {
+export default function UsageChart({ locationId }: { locationId: string }) {
   const [range, setRange] = useState<Range>("24h");
   const [points, setPoints] = useState<Point[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,27 +49,23 @@ export default function UsageChart({ slug, locationId }: { slug: string; locatio
     setHover(null);
 
     const build = async (): Promise<Point[]> => {
+      const url = withBase(`/api/usage?loc=${encodeURIComponent(locationId)}&range=${range}`);
       if (range === "1y") {
-        const daily = await getJson<DailyFile>(`/data/snapshots/${slug}/daily.json`);
-        const series = daily?.[locationId] ?? {};
+        const series = (await getJson<DailyResponse>(url))?.daily ?? {};
         const dates = Object.keys(series).sort();
         return dates.map((d) => ({ label: d, short: d.slice(5), v: series[d] }));
       }
-      const days = range === "24h" ? 1 : range === "7d" ? 7 : 30;
-      const dates: string[] = [];
-      for (let i = days - 1; i >= 0; i--) dates.push(localDate(i));
-      const files = await Promise.all(dates.map((d) => getJson<DayFile>(`/data/snapshots/${slug}/${d}.json`)));
+      const days = (await getJson<HourlyResponse>(url))?.days ?? [];
       const out: Point[] = [];
-      files.forEach((f, di) => {
-        const occ = f?.locations?.[locationId]?.occ ?? Array(24).fill(null);
+      for (const { date, occ } of days) {
         for (let h = 0; h < 24; h++) {
           out.push({
-            label: `${dates[di]} ${String(h).padStart(2, "0")}:00`,
-            short: range === "24h" ? `${h}u` : h === 12 ? dates[di].slice(5) : "",
+            label: `${date} ${String(h).padStart(2, "0")}:00`,
+            short: range === "24h" ? `${h}u` : h === 12 ? date.slice(5) : "",
             v: occ[h] ?? null,
           });
         }
-      });
+      }
       return out;
     };
 
@@ -92,7 +77,7 @@ export default function UsageChart({ slug, locationId }: { slug: string; locatio
     return () => {
       cancelled = true;
     };
-  }, [slug, locationId, range]);
+  }, [locationId, range]);
 
   const stats = useMemo(() => {
     if (!points) return null;
@@ -128,7 +113,7 @@ export default function UsageChart({ slug, locationId }: { slug: string; locatio
           Gebruik over de tijd
           <InfoTip title="Gebruik over de tijd">
             Per uur: het aandeel connectoren van deze locatie met OCPI-status “laden” (% in gebruik). Opgebouwd
-            uit de uurlijkse NDW-snapshots; 24u/7d/30d tonen uurwaarden, 1j toont daggemiddelden. De historie
+            uit de uurlijkse NDW-snapshots (sinds juni 2026); 24u/7d/30d tonen uurwaarden, 1j toont daggemiddelden. De historie
             groeit naarmate de app langer draait.
           </InfoTip>
         </h4>
