@@ -10,6 +10,7 @@ import { openChargeMapSource } from './sources/openChargeMap.js';
 import { mergeFreight } from './sources/merge.js';
 import { fetchNalSites, nalToFreight, type NalSite } from './sources/nal.js';
 import { GridIndex, sameOperator } from './geo.js';
+import { writeAbroad } from './abroad/index.js';
 import { resolveConnectorPrice } from './tariff.js';
 import type { FreightSource } from './sources/types.js';
 import type {
@@ -249,6 +250,13 @@ async function main() {
 
   // 7. Write.
   await writeOutputs({ passengerLights, freightLights, enrichedById, boundaries, generatedAt });
+
+  // 8. Neighbouring countries (separate file; a failure never fails the NL run).
+  try {
+    await writeAbroad(refresh, generatedAt);
+  } catch (err) {
+    console.warn(`  [abroad] failed, skipping: ${(err as Error).message}`);
+  }
 
   console.log('\n=== Done ===\n');
 }

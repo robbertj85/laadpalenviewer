@@ -77,6 +77,13 @@ export default function AboutModal({ isOpen, onClose, onStartTutorial }: Props) 
                 als losse punten zonder live status.
               </li>
               <li>
+                <strong>Buurlanden</strong> (alleen truck- en snellaadlocaties ≥350 kW, in het landelijke
+                overzicht): Duitsland uit het <strong>Ladesäulenregister van de Bundesnetzagentur</strong> (CC BY
+                4.0, maandelijks), België uit het open netwerkbestand van <strong>Road</strong> (een deel van het
+                land) en de hublijst van <strong>Milence</strong>, Luxemburg uit de NAP-feed van{" "}
+                <strong>Eco-Movement</strong>. Zonder live status.
+              </li>
+              <li>
                 <strong>Open Charge Map</strong> — extra vrachtlocaties.
               </li>
             </ul>
@@ -150,7 +157,7 @@ export default function AboutModal({ isOpen, onClose, onStartTutorial }: Props) 
           </Section>
 
           <p className="text-xs text-gray-400 pt-2 border-t">
-            Attributie: data © CBS (CC-BY 4.0), PDOK (CC0), NDW (open data), NAL Laadkaart zwaar vervoer (RVO / Charge It Up), Open Charge Map. Voor operationeel
+            Attributie: data © CBS (CC-BY 4.0), PDOK (CC0), NDW (open data), NAL Laadkaart zwaar vervoer (RVO / Charge It Up), Open Charge Map, Bundesnetzagentur Ladesäulenregister (CC BY 4.0), Road, Eco-Movement, Milence. Voor operationeel
             gebruik altijd de bron raadplegen.
           </p>
         </div>

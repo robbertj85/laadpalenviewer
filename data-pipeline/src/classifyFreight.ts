@@ -45,17 +45,32 @@ const FREIGHT_OPERATOR_PATTERNS = [
   'floading',
   'entent',
   'electraclear',
+  // DE truck operators (Bundesnetzagentur register)
+  'daimler truck',
+  'man truck',
+  'park your truck',
+  'dayser',
 ];
 
 // Explicit truck naming on the location itself ("Truck only", "Truckpoint",
-// "E-Truck", "vrachtwagen", "LZV", ...). High precision in the NDW feed, but
-// "heftruck"/"vorkheftruck" (forklift) and "pallettruck" must not match. Not
-// "e-bus": that hits street names like "Debussylaan".
-const TRUCK_NAME_RE = /truck|vracht|zwaar vervoer|\blzv\b|bakwagen|oplegger/i;
-const FORKLIFT_RE = /(hef|vorkhef|pallet|steek)truck/gi;
+// "E-Truck", "vrachtwagen", "LZV", German "Lkw", ...). High precision in the NDW
+// feed, but forklift names ("heftruck", "vorkheftruck", "pallettruck",
+// "Stapler") must not match. Not "e-bus": that hits street names like
+// "Debussylaan".
+const TRUCK_NAME_RE = /truck|vracht|zwaar vervoer|\blzv\b|bakwagen|oplegger|\blkw|nutzfahrzeug|schwerlast/i;
+const FORKLIFT_RE = /(hef|vorkhef|pallet|steek)truck|stapler/gi;
 
 function nameMentionsTruck(name: string): boolean {
   return TRUCK_NAME_RE.test(name.replace(FORKLIFT_RE, ''));
+}
+
+// Truck signal from operator and site name alone, for sources without OCPI
+// connectors (e.g. the German charge-point register).
+export function truckSignal(operator: string | undefined, name: string | undefined): 'operator' | 'truck-name' | undefined {
+  const op = normalize(operator);
+  if (FREIGHT_OPERATOR_PATTERNS.some((p) => op.includes(p))) return 'operator';
+  if (nameMentionsTruck(name ?? '')) return 'truck-name';
+  return undefined;
 }
 
 // Logistics-depot naming; only counts as freight when paired with serious DC power,

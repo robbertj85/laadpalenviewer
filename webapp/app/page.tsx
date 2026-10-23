@@ -37,10 +37,15 @@ const MapDeck = dynamic(() => import("@/components/MapDeck"), {
 const NL_BOUNDS: [number, number, number, number] = [3.31, 50.75, 7.21, 53.47];
 const DEFAULT_SLUG = "utrecht";
 
+// Stable empty list so MapDeck's memo doesn't rerun on every render.
+const NO_FEATURES: ChargeFeature[] = [];
+
 export default function Home() {
   const [municipalities, setMunicipalities] = useState<Municipality[]>([]);
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
   const [chargeFeatures, setChargeFeatures] = useState<ChargeFeature[]>([]);
+  // Truck / high-power sites in DE, BE, LU: national view only, kept out of the NL stats.
+  const [abroadFeatures, setAbroadFeatures] = useState<ChargeFeature[]>([]);
   const [boundaryFeatures, setBoundaryFeatures] = useState<BoundaryFeature[]>([]);
   const [bounds, setBounds] = useState<[number, number, number, number] | null>(null);
   const [details, setDetails] = useState<DetailBundle>({});
@@ -237,13 +242,16 @@ export default function Home() {
 
     const load = async () => {
       if (selectedMunicipality === "nederland") {
-        const [pRes, fRes, provRes] = await Promise.all([
+        const [pRes, fRes, provRes, abroadRes] = await Promise.all([
           fetch(withBase("/data/nederland-passenger.geojson")),
           fetch(withBase("/data/nederland-freight.geojson")),
           fetch(withBase("/data/provinces.geojson")),
+          fetch(withBase("/data/buurlanden-freight.geojson")),
         ]);
         const [p, f, prov] = (await Promise.all([pRes.json(), fRes.json(), provRes.json()])) as CropoutData[];
+        const abroad = abroadRes.ok ? ((await abroadRes.json()) as CropoutData) : null;
         if (cancelled) return;
+        setAbroadFeatures((abroad?.features ?? []) as ChargeFeature[]);
         setChargeFeatures([
           ...(p.features as ChargeFeature[]),
           ...(f.features as ChargeFeature[]),
@@ -294,18 +302,21 @@ export default function Home() {
 
   // Counts shown in the filter panel: same power/kind filtering as the map layers,
   // so "the counts reflect the current view" actually holds.
-  const { passengerCount, freightCount } = useMemo(() => {
+  const { passengerCount, freightCount, abroadCount } = useMemo(() => {
     let p = 0;
     let f = 0;
+    let a = 0;
+    const visible = (feat: ChargeFeature) =>
+      feat.properties.maxPowerKw >= filters.minPowerKw &&
+      !(feat.properties.layer === "freight" && filters.dedicatedFreightOnly && feat.properties.freightKind === "hpc");
     for (const feat of chargeFeatures) {
-      if (feat.properties.maxPowerKw < filters.minPowerKw) continue;
-      if (feat.properties.layer === "freight") {
-        if (filters.dedicatedFreightOnly && feat.properties.freightKind === "hpc") continue;
-        f++;
-      } else p++;
+      if (!visible(feat)) continue;
+      if (feat.properties.layer === "freight") f++;
+      else p++;
     }
-    return { passengerCount: p, freightCount: f };
-  }, [chargeFeatures, filters.minPowerKw, filters.dedicatedFreightOnly]);
+    if (isNational) for (const feat of abroadFeatures) if (visible(feat)) a++;
+    return { passengerCount: p, freightCount: f, abroadCount: a };
+  }, [chargeFeatures, abroadFeatures, isNational, filters.minPowerKw, filters.dedicatedFreightOnly]);
 
   const selectedDetail = selected ? details[selected.properties.locationId] ?? null : null;
 
@@ -409,6 +420,7 @@ export default function Home() {
             onChange={setFilters}
             passengerCount={passengerCount}
             freightCount={freightCount}
+            abroadCount={isNational ? abroadCount : null}
           />
           {isNational && (
             <p className="text-xs text-gray-500 px-1">
@@ -421,6 +433,7 @@ export default function Home() {
         <main className="flex-1 relative">
           <MapDeck
             chargeFeatures={chargeFeatures}
+            abroadFeatures={isNational && filters.showAbroad ? abroadFeatures : NO_FEATURES}
             boundaryFeatures={boundaryFeatures}
             bounds={bounds}
             filters={choroActive ? { ...filters, showPassenger: false, showFreight: false } : filters}
@@ -468,7 +481,7 @@ export default function Home() {
           <button onClick={() => setShowAbout(true)} className="text-blue-600 hover:underline">
             Info over databronnen
           </button>
-          <span>Bronnen: NDW OCPI · NAL zwaar vervoer · PDOK/CBS · Open Charge Map</span>
+          <span>Bronnen: NDW OCPI · NAL zwaar vervoer · PDOK/CBS · Open Charge Map · BNetzA · Road · Eco-Movement · Milence</span>
         </div>
       </footer>
 

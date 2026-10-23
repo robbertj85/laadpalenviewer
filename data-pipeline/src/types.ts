@@ -167,6 +167,7 @@ export interface LightLocation {
   freightKind?: FreightKind;
   freightReason?: FreightReason;
   hdv?: HdvInfo;
+  country?: string; // ISO 3166-1 alpha-2; set on neighbouring-country points only
 }
 
 // Normalized external freight location (from sources/*).
@@ -187,6 +188,7 @@ export interface NormalizedFreightLocation {
   freightKind?: FreightKind;
   freightReason?: FreightReason;
   hdv?: HdvInfo;
+  country?: string;
 }
 
 // Full enriched location detail ("with details"), stored in per-gemeente bundles.

@@ -35,6 +35,19 @@ const FREIGHT_REASON_LABEL: Record<string, string> = {
   nal: "NAL-laadkaart zwaar vervoer",
 };
 
+const SOURCE_LABEL: Record<string, string> = {
+  ndw: "NDW",
+  nal: "NAL Laadkaart zwaar vervoer",
+  bnetza: "Bundesnetzagentur (Ladesäulenregister)",
+  road: "Road",
+  "eco-movement": "Eco-Movement (NAP Luxemburg)",
+  milence: "Milence",
+  ocm: "Open Charge Map",
+  curated: "handmatig",
+};
+
+const COUNTRY_LABEL: Record<string, string> = { DE: "Duitsland", BE: "België", LU: "Luxemburg" };
+
 const VEHICLE_LABEL: Record<string, string> = {
   bestelauto: "grote bestelauto",
   bakwagen: "bakwagen",
@@ -99,6 +112,7 @@ export default function LocationDetailPanel({ selected, detail, loading, onClose
                 <span className="truncate">
                   {p.address}
                   {p.city ? `, ${p.city}` : ""}
+                  {p.country ? ` (${COUNTRY_LABEL[p.country] ?? p.country})` : ""}
                 </span>
               </div>
             )}
@@ -129,7 +143,7 @@ export default function LocationDetailPanel({ selected, detail, loading, onClose
                 <ExternalLink className="h-3 w-3" />
               </a>
             )}
-            <div className="text-xs text-gray-500 mt-1">Bron: {p.source.toUpperCase()}</div>
+            <div className="text-xs text-gray-500 mt-1">Bron: {SOURCE_LABEL[p.source] ?? p.source.toUpperCase()}</div>
           </div>
         </div>
 
@@ -173,7 +187,7 @@ export default function LocationDetailPanel({ selected, detail, loading, onClose
         )}
 
         {/* Usage over time (gemeente view only; per-gemeente snapshot history) */}
-        <UsageChart locationId={p.locationId} />
+        {!p.country && <UsageChart locationId={p.locationId} />}
 
         {loading && (
           <div className="text-sm text-gray-500 italic flex items-center gap-2">

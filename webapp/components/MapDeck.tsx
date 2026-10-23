@@ -19,6 +19,7 @@ setWorkerUrl(withBase("/maplibre-gl-worker.mjs"));
 
 interface MapDeckProps {
   chargeFeatures: ChargeFeature[];
+  abroadFeatures?: ChargeFeature[]; // DE/BE/LU truck sites, drawn with the freight layer
   boundaryFeatures: BoundaryFeature[];
   bounds: [number, number, number, number] | null;
   filters: Filters;
@@ -37,8 +38,9 @@ interface AreaHover {
   lat: number;
 }
 
-// [west, south, east, north]
-const NL_BOUNDS: [number, number, number, number] = [3.31, 50.75, 7.21, 53.47];
+// [west, south, east, north]: NL plus the neighbouring-country truck layer (DE, BE, LU).
+const MAX_BOUNDS: [number, number, number, number] = [2.0, 47.0, 15.6, 55.3];
+const NO_FEATURES: ChargeFeature[] = [];
 
 const cursorStyle = (hovering: boolean) => `
   .maplibregl-map, .maplibregl-canvas-container, .maplibregl-canvas {
@@ -48,6 +50,7 @@ const cursorStyle = (hovering: boolean) => `
 
 export default function MapDeck({
   chargeFeatures,
+  abroadFeatures = NO_FEATURES,
   boundaryFeatures,
   bounds,
   filters,
@@ -109,7 +112,7 @@ export default function MapDeck({
   const { passenger, freight } = useMemo(() => {
     const p: ChargeFeature[] = [];
     const f: ChargeFeature[] = [];
-    for (const feat of chargeFeatures) {
+    for (const feat of [...chargeFeatures, ...abroadFeatures]) {
       if (feat.properties.maxPowerKw < filters.minPowerKw) continue;
       if (feat.properties.layer === "freight") {
         if (filters.dedicatedFreightOnly && feat.properties.freightKind === "hpc") continue;
@@ -117,7 +120,7 @@ export default function MapDeck({
       } else p.push(feat);
     }
     return { passenger: p, freight: f };
-  }, [chargeFeatures, filters.minPowerKw, filters.dedicatedFreightOnly]);
+  }, [chargeFeatures, abroadFeatures, filters.minPowerKw, filters.dedicatedFreightOnly]);
 
   const handleHover = useCallback((info: PickingInfo<ChargeFeature>) => {
     setHovered(info.object ?? null);
@@ -301,7 +304,7 @@ export default function MapDeck({
         initialViewState={{ longitude: 5.2913, latitude: 52.1326, zoom: 7 }}
         style={{ width: "100%", height: "100%" }}
         mapStyle="https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-        maxBounds={NL_BOUNDS}
+        maxBounds={MAX_BOUNDS}
         onLoad={onMapLoad}
       >
         <NavigationControl position="top-right" />

@@ -12,8 +12,12 @@ const ANY_OPERATOR_RADIUS_M = 50;
 // Higher number = higher priority (kept on collision).
 const SOURCE_PRIORITY: Record<string, number> = {
   curated: 100,
+  milence: 90, // operator's own hub list (DE/BE/LU)
   ndw: 80,
+  bnetza: 75,
+  road: 75,
   nal: 70,
+  'eco-movement': 65,
   eafo: 60,
   ocm: 40,
 };

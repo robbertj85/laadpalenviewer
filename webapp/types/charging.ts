@@ -32,6 +32,7 @@ export interface ChargeProperties {
   freightKind?: FreightKind;
   freightReason?: string;
   hdv?: HdvInfo;
+  country?: string; // 'DE' | 'BE' | 'LU' on neighbouring-country points; absent for NL
 }
 
 // Heavy-vehicle details from the NAL "Laadkaart zwaar vervoer".
@@ -148,6 +149,7 @@ export interface Filters {
   minPowerKw: number;
   colorByPrice: boolean; // color charge points by €/kWh instead of status
   dedicatedFreightOnly: boolean; // hide 'hpc' freight (power-only truck-capable sites)
+  showAbroad: boolean; // truck / high-power sites in DE, BE, LU (national view only)
 }
 
 export const DEFAULT_FILTERS: Filters = {
@@ -157,4 +159,5 @@ export const DEFAULT_FILTERS: Filters = {
   minPowerKw: 0,
   colorByPrice: false,
   dedicatedFreightOnly: false,
+  showAbroad: true,
 };

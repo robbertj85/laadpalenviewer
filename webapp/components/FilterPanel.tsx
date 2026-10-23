@@ -9,11 +9,12 @@ interface FilterPanelProps {
   onChange: (f: Filters) => void;
   passengerCount: number;
   freightCount: number;
+  abroadCount: number | null; // null outside the national view
 }
 
 const POWER_STEPS = [0, 50, 150, 350, 1000];
 
-export default function FilterPanel({ filters, onChange, passengerCount, freightCount }: FilterPanelProps) {
+export default function FilterPanel({ filters, onChange, passengerCount, freightCount, abroadCount }: FilterPanelProps) {
   const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 
   return (
@@ -73,6 +74,29 @@ export default function FilterPanel({ filters, onChange, passengerCount, freight
                 of een logistiek depot.
               </InfoTip>
             </span>
+          </label>
+        )}
+
+        {filters.showFreight && abroadCount !== null && (
+          <label className="flex items-center justify-between gap-2 cursor-pointer pl-6">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={filters.showAbroad}
+                onChange={(e) => set({ showAbroad: e.target.checked })}
+                className="w-4 h-4 accent-amber-500"
+              />
+              <span className="text-sm text-gray-800 flex items-center gap-1">
+                Buurlanden (DE/BE/LU)
+                <InfoTip title="Buurlanden">
+                  Truck- en snellaadlocaties (≥350 kW DC) in Duitsland, België en Luxemburg. Duitsland: het
+                  Ladesäulenregister van de Bundesnetzagentur; België: Road (deel van het land) en Milence;
+                  Luxemburg: Eco-Movement. Zonder live status; alleen in het landelijke overzicht en niet
+                  meegeteld in de Nederlandse statistieken.
+                </InfoTip>
+              </span>
+            </span>
+            <span className="text-xs text-gray-500 tabular-nums">{abroadCount.toLocaleString("nl-NL")}</span>
           </label>
         )}
 

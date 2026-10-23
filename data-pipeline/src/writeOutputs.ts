@@ -24,7 +24,7 @@ interface WriteInput {
   generatedAt: string;
 }
 
-function pointFeature(l: LightLocation) {
+export function pointFeature(l: LightLocation) {
   return {
     type: 'Feature' as const,
     geometry: { type: 'Point' as const, coordinates: [l.lng, l.lat] },
@@ -44,6 +44,7 @@ function pointFeature(l: LightLocation) {
       ...(l.freightKind ? { freightKind: l.freightKind } : {}),
       ...(l.freightReason ? { freightReason: l.freightReason } : {}),
       ...(l.hdv ? { hdv: l.hdv } : {}),
+      ...(l.country ? { country: l.country } : {}),
     },
   };
 }
