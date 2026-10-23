@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import Map, { NavigationControl, MapRef, Popup } from "react-map-gl/maplibre";
-import { MapboxOverlay } from "@deck.gl/mapbox";
+import { setWorkerUrl } from "maplibre-gl";
+import { MapLibreOverlay } from "@deck.gl/maplibre";
 import { ScatterplotLayer, GeoJsonLayer } from "@deck.gl/layers";
 import type { PickingInfo } from "@deck.gl/core";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -10,6 +11,11 @@ import type { ChargeFeature, BoundaryFeature, Filters } from "@/types/charging";
 import type { ChoroplethData, MetricMeta } from "@/types/analysis";
 import { statusColor, freightColor, BOUNDARY_LINE, LEGEND, type RGBA } from "@/lib/colors";
 import { rampColor, rampCss, robustDomain, NODATA } from "@/lib/ramp";
+import { withBase } from "@/lib/basePath";
+
+// MapLibre 6 looks for its worker next to its own (bundler-renamed) module and
+// 404s; serve it from public/ instead (copied there by predev/prebuild).
+setWorkerUrl(withBase("/maplibre-gl-worker.mjs"));
 
 interface MapDeckProps {
   chargeFeatures: ChargeFeature[];
@@ -31,10 +37,8 @@ interface AreaHover {
   lat: number;
 }
 
-const NL_BOUNDS: [[number, number], [number, number]] = [
-  [3.31, 50.75],
-  [7.21, 53.47],
-];
+// [west, south, east, north]
+const NL_BOUNDS: [number, number, number, number] = [3.31, 50.75, 7.21, 53.47];
 
 const cursorStyle = (hovering: boolean) => `
   .maplibregl-map, .maplibregl-canvas-container, .maplibregl-canvas {
@@ -55,7 +59,7 @@ export default function MapDeck({
   onAreaSelect,
 }: MapDeckProps) {
   const mapRef = useRef<MapRef>(null);
-  const [deckOverlay, setDeckOverlay] = useState<MapboxOverlay | null>(null);
+  const [deckOverlay, setDeckOverlay] = useState<MapLibreOverlay | null>(null);
   const [hovered, setHovered] = useState<ChargeFeature | null>(null);
   const [areaHover, setAreaHover] = useState<AreaHover | null>(null);
 
@@ -96,7 +100,7 @@ export default function MapDeck({
   };
 
   useEffect(() => {
-    const overlay = new MapboxOverlay({ interleaved: true, layers: [] });
+    const overlay = new MapLibreOverlay({ interleaved: true, layers: [] });
     setDeckOverlay(overlay);
     return () => overlay.finalize();
   }, []);
@@ -267,9 +271,11 @@ export default function MapDeck({
     if (deckOverlay) deckOverlay.setProps({ layers: layers as never });
   }, [deckOverlay, layers]);
 
-  // Fit to bounds whenever they change (municipality selection).
+  // Fit to bounds whenever they change (municipality selection). Also waits for
+  // the map: on a ?gemeente= deep link the bounds arrive before it has loaded.
+  const [mapLoaded, setMapLoaded] = useState(false);
   useEffect(() => {
-    if (bounds && mapRef.current) {
+    if (bounds && mapLoaded && mapRef.current) {
       mapRef.current.fitBounds(
         [
           [bounds[0], bounds[1]],
@@ -278,12 +284,13 @@ export default function MapDeck({
         { padding: 40, duration: 800 },
       );
     }
-  }, [bounds]);
+  }, [bounds, mapLoaded]);
 
   const onMapLoad = useCallback(() => {
     if (mapRef.current && deckOverlay) {
-      mapRef.current.getMap().addControl(deckOverlay as never);
+      mapRef.current.getMap().addControl(deckOverlay);
     }
+    setMapLoaded(true);
   }, [deckOverlay]);
 
   return (

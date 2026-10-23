@@ -6,3 +6,4 @@ node_modules/
 # For local dev: ./deploy/pull-data.sh, or run the pipeline (data-pipeline/README).
 webapp/public/data/
 webapp/public/municipalities.json
+webapp/public/maplibre-gl-worker.mjs
